@@ -182,6 +182,7 @@ Install-AdcsCertificationAuthority `
 ```
 
 Workflow de signature (le point qui bloque tout le monde la première fois) :
+
 1. Copie la CSR de SUBCA vers ROOTCA (rallumée temporairement).
 2. Sur ROOTCA : `certreq -submit "C:\...req"` → note l'ID de la requête.
 3. `certutil -resubmit <ID>` (approuver), puis `certreq -retrieve <ID> "C:\subca.cer"`.
@@ -206,6 +207,7 @@ certutil -CATemplates
 ```
 
 Bonnes pratiques templates :
+
 - **Ne modifie jamais** les templates par défaut : **duplique**-les, versionne le nom (`CORP-Web-Server-v1`).
 - Coche *"Do not store certs and requests in the CA database"* seulement si tu sais pourquoi.
 - Pour l'auto-enrollment : onglet *Security* → le groupe cible a *Read + Enroll + Autoenroll*.
@@ -219,6 +221,7 @@ Objectif : chaque poste/serveur reçoit et renouvelle automatiquement ses certif
 2. Publie le template sur la CA.
 3. GPO `GPO-C-AutoEnroll` liée au domaine :
    - *Computer Config → Policies → Windows Settings → Security Settings → Public Key Policies → Certificate Services Client - Auto-Enrollment* = **Enabled**, coche renew + update.
+
 4. Sur un client : `gpupdate /force`, puis `certlm.msc` → Personal → Certificates : le certif machine apparaît.
 ```powershell
 certutil -pulse   # forcer le déclenchement de l'auto-enrollment
@@ -287,6 +290,7 @@ Backup-CARoleService -Path C:\Backup\CA -Password (Read-Host -AsSecureString)
 AD DS authentifie très bien **à l'intérieur** de ton réseau (Kerberos/NTLM). Mais dès qu'un utilisateur doit s'authentifier auprès d'une **application web tierce** (SaaS, appli partenaire), Kerberos ne passe pas les frontières. La **fédération d'identité** résout ça : l'application fait *confiance* à ton fournisseur d'identité (IdP), qui atteste de l'identité via des **claims** (revendications) transportées par des jetons standardisés.
 
 Standards clés :
+
 - **SAML 2.0** - le vétéran, dominant dans le SaaS entreprise.
 - **WS-Federation** - historique Microsoft.
 - **OAuth 2.0 / OpenID Connect (OIDC)** - moderne, orienté API/mobile.
@@ -308,6 +312,7 @@ Standards clés :
 ## 17.3 Prérequis - et pourquoi ADFS dépend du module 16
 
 ADFS **exige un certificat de service** (SSL). C'est là que la chaîne se boucle : tu émets ce certificat depuis **ta PKI du module 16**. Il te faut aussi :
+
 - Un enregistrement DNS dédié : `fs.corp.lab.local` (le service ADFS a son propre nom, pas celui du serveur).
 - Un compte de service - idéalement un **gMSA** (rappel module 11.4).
 - Le certificat avec le SAN `fs.corp.lab.local` (+ `enterpriseregistration.corp.lab.local` pour le Device Registration).
@@ -477,6 +482,7 @@ Set-DfsnRoot -Path "\\corp.lab.local\dfs" -EnableAccessBasedEnumeration $true
 ## 19.1 Le rôle de NPS
 
 Network Policy Server est l'implémentation Microsoft de **RADIUS**. Il centralise l'authentification/autorisation des accès réseau contre AD :
+
 - **802.1X filaire et Wi-Fi** : un poste ne parle au réseau que s'il s'authentifie (par certificat ou identifiants AD).
 - **VPN** : authentifier les connexions VPN via AD.
 - **Comptabilité (accounting)** : journaliser qui se connecte, où, quand.
@@ -511,10 +517,12 @@ New-NpsRadiusClient -Name "AP-Etage1" -Address "192.168.10.200" `
     -SharedSecret "UnSecretRadiusLong!" -VendorName "RADIUS Standard"
 ```
 Puis dans `nps.msc` :
+
 1. **Network Policy** `Wi-Fi-Employes` :
    - Condition : *Windows Groups* = `G_WiFi_Autorises` ; *NAS Port Type* = *Wireless 802.11*.
    - Autoriser l'accès.
    - Méthode EAP : **Microsoft: Protected EAP (PEAP)** → EAP interne MSCHAPv2, avec le certif serveur émis par ta PKI.
+
 2. Le point d'accès pointe son RADIUS vers `192.168.10.50` avec le secret partagé.
 3. GPO Wi-Fi (Computer → Policies → Windows Settings → Wireless Network Policies) pour pousser le profil aux clients.
 
@@ -556,6 +564,7 @@ Puis dans la console WSUS : choisis les produits (Windows Server 2022, Windows 1
 ## 20.4 GPO client Windows Update
 
 `GPO-C-WindowsUpdate` (Computer → Policies → Admin Templates → Windows Components → Windows Update) :
+
 - *Specify intranet Microsoft update service location* = `http://WSUS01:8530`
 - *Enable client-side targeting* = nom du groupe WSUS
 - Planification d'installation, heures actives, redémarrage.
@@ -631,6 +640,7 @@ Reprends le script de santé du module 11.3 et transforme-le en **tâche planifi
 **Objectif** : livrer une infra de services on-prem complète, sécurisée et observable, adossée au domaine `corp.lab.local` de la Partie 1.
 
 Checklist de livraison :
+
 - [ ] **PKI two-tier** : ROOTCA offline + SUBCA enterprise ; CDP/AIA HTTP ; auto-enrollment machine par GPO ; flag ESC6 vérifié ; templates audités (PSPKI).
 - [ ] **LDAPS** actif sur les DC avec certif de la PKI, testé via `ldp.exe:636`.
 - [ ] **ADFS** installé (certif issu de la PKI, gMSA, DNS `fs.`), une RP trust de test avec claim rules.
