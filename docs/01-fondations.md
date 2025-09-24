@@ -87,6 +87,7 @@ Forêt : lab.local
 ```
 
 Points clés :
+
 - La **forêt est la limite de sécurité**. Un administrateur d'un domaine peut, par des techniques d'escalade, compromettre toute la forêt. Ne considérez jamais le domaine comme une frontière de sécurité.
 - Tous les domaines d'une forêt partagent le même **schéma** et la même partition de **configuration**.
 - Des **approbations bidirectionnelles transitives** existent automatiquement entre tous les domaines d'une forêt.
@@ -426,6 +427,7 @@ Import-Csv .\utilisateurs.csv | ForEach-Object {
 ## 6.4 Groupes : types, étendues et stratégie AGDLP
 
 **Deux types** :
+
 - *Security* : porte des permissions (possède un SID). Le type utile.
 - *Distribution* : listes de diffusion mail uniquement.
 
@@ -515,10 +517,12 @@ Get-ADObject -Filter {displayName -like "*Dupont*"} -IncludeDeletedObjects |
 ## 7.1 Concepts
 
 Une **GPO** est un ensemble de paramètres appliqués aux **utilisateurs** et/ou **ordinateurs**. Elle se compose de :
+
 - **GPC** (Group Policy Container) : objet dans AD (version, liens).
 - **GPT** (Group Policy Template) : fichiers dans `\\corp.lab.local\SYSVOL\corp.lab.local\Policies\{GUID}`.
 
 Deux moitiés dans chaque GPO :
+
 - **Computer Configuration** : appliquée au démarrage + rafraîchissement (~90-120 min).
 - **User Configuration** : appliquée à l'ouverture de session + rafraîchissement.
 
@@ -528,6 +532,7 @@ Deux moitiés dans chaque GPO :
 Local → Site → Domain → OU (parent → enfant)
 ```
 **Le dernier appliqué gagne** en cas de conflit (donc l'OU la plus proche de l'objet). Modificateurs :
+
 - **Enforced** (sur un lien) : la GPO gagne toujours et traverse les blocages.
 - **Block Inheritance** (sur une OU) : bloque les GPO venant d'au-dessus (sauf Enforced).
 - **Security Filtering** : n'appliquer la GPO qu'à certains groupes (nécessite *Read* + *Apply Group Policy*).
@@ -543,6 +548,7 @@ Local → Site → Domain → OU (parent → enfant)
 
 ### GPO 2 : sécurité des postes (Computer)
 `GPO-C-Securite-Postes` liée à `OU=Ordinateurs` :
+
 - Pare-feu Windows activé sur les 3 profils.
 - Windows Defender : protection en temps réel forcée.
 - *Interactive logon: Do not display last user name* = Enabled.
@@ -550,6 +556,7 @@ Local → Site → Domain → OU (parent → enfant)
 
 ### GPO 3 : politique de mots de passe du domaine
 La politique de mot de passe du domaine vit dans la **Default Domain Policy** (unique GPO au niveau domaine à effet pour les mots de passe) :
+
 - Longueur minimale : 14
 - Historique : 24
 - Verrouillage : 5 tentatives / 15 min
@@ -583,6 +590,7 @@ Restore-GPO -Name "GPO-C-Securite-Postes" -Path "C:\Backup\GPO"
 ```
 
 Bonnes pratiques GPO :
+
 1. Convention de nommage claire : `GPO-U-*` (user), `GPO-C-*` (computer).
 2. Peu de GPO monolithiques plutôt que 200 micro-GPO (temps de logon).
 3. Désactivez la moitié inutilisée (Computer ou User) dans les détails de la GPO.
@@ -747,6 +755,7 @@ New-ADReplicationSiteLink -Name "HQ-Nord" `
 | Realm | Variable | Uni/Bi | Vers un royaume Kerberos non-Windows (MIT) |
 
 Notions de sécurité associées :
+
 - **SID Filtering** : activé par défaut sur les trusts externes/forêt, bloque l'injection de SID étrangers (attaque SID History).
 - **Selective Authentication** : n'autoriser que certains comptes de la forêt approuvée à s'authentifier sur certaines ressources.
 
@@ -861,6 +870,7 @@ Tier 2  : postes de travail, helpdesk
 ```
 
 Règle d'airain : **un compte d'un tier ne s'authentifie jamais sur un tier inférieur**. Un Domain Admin ne se connecte jamais sur un poste utilisateur (sinon son hash NTLM / ticket Kerberos reste en mémoire, récupérable par Mimikatz). On applique cela avec :
+
 - Des comptes distincts par tier (`adm-t0-jdupont`, `adm-t1-jdupont`, compte normal `jdupont`).
 - Des **PAW** (Privileged Access Workstations) dédiés à l'administration Tier 0.
 - Le groupe **Protected Users** + les **Authentication Policies/Silos** pour verrouiller où ces comptes peuvent s'authentifier.
@@ -892,6 +902,7 @@ Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart
 ## 12.2b Politique d'audit (indispensable pour la détection)
 
 Activez via GPO l'*Advanced Audit Policy* sur les DC :
+
 - Logon/Logoff, Account Logon (Kerberos/NTLM)
 - Directory Service Access & Changes
 - Sensitive Privilege Use
@@ -1076,6 +1087,7 @@ repadmin /removelingeringobjects DC02 <GUID_de_DC01> "DC=corp,DC=lab,DC=local" /
 **Objectif** : livrer un domaine `corp.lab.local` prêt pour la production (échelle lab).
 
 Checklist de livraison :
+
 - [ ] DC01 + DC02 promus, GC, DNS AD-integrated, 0 erreur `dcdiag` et `repadmin`.
 - [ ] DNS : zone inverse, redirecteurs, scavenging, chaque DC pointe vers l'autre + loopback.
 - [ ] Structure d'OU complète + redirection `redircmp`/`redirusr`.
