@@ -43,6 +43,7 @@
 ```
 
 > **Note d'ingénieur - contraintes de lab, à lire avant de commencer** :
+>
 > - **Édition** : Storage Spaces Direct (module 25) exige **Windows Server Datacenter**. Standard ne l'a pas. Le clustering de base et Hyper-V fonctionnent en Standard.
 > - **Virtualisation imbriquée (nested)** : pour clusteriser Hyper-V dans des VM, active la nested virtualization sur ton hyperviseur (`Set-VMProcessor -ExposeVirtualizationExtensions $true` sous Hyper-V hôte ; option équivalente sous VMware/Proxmox).
 > - **RAM** : compte 4-8 Go par nœud. Un lab HA à 2 nœuds + iSCSI + DC, c'est ~20 Go de RAM minimum. Fais tourner par module, snapshots à l'appui.
@@ -285,6 +286,7 @@ Get-StorageSubSystem *cluster* | Get-StorageHealthReport
 ```
 
 Notions S2D clés :
+
 - **Cache** : les disques les plus rapides (NVMe/SSD) servent de cache aux disques capacité automatiquement.
 - **ReFS** est le système de fichiers recommandé (intégrité, snapshots rapides, mirror-accelerated parity).
 - **Mirror** = performance + résilience (coûte en capacité). **Parity** = capacité (coûte en perf). **Mirror-accelerated parity** = compromis.
@@ -483,6 +485,7 @@ New-SmbShare -Name "VMs" -Path "C:\ClusterStorage\Volume1\Shares\VMs" -Continuou
 Le DHCP est un SPOF silencieux : s'il tombe, les baux expirent et le réseau meurt progressivement. Windows Server offre le **DHCP Failover** (bien supérieur au vieux split-scope).
 
 Deux modes :
+
 - **Hot Standby** : un serveur actif, un en secours. Idéal site principal/secours.
 - **Load Balancing** : les deux servent (répartition 50/50 par défaut). Idéal même site.
 
@@ -534,6 +537,7 @@ Un architecte lit ce tableau et voit immédiatement les trous. C'est exactement 
 **Objectif** : transformer l'infra `corp.lab.local` (Parties 1+2) en une infra qui **survit à la panne d'un nœud, d'un disque et d'un site**, et le **prouver par des tests de bascule documentés**.
 
 Checklist de livraison :
+
 - [ ] Cluster WSFC à 2+ nœuds validé (`Test-Cluster` propre), avec **témoin** correct et quorum dynamique compris.
 - [ ] Réseaux Production/Heartbeat séparés.
 - [ ] Stockage résilient : soit iSCSI + CSV, soit **S2D** (Datacenter) avec volume miroir ReFS survivant à la perte d'un nœud.
