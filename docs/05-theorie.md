@@ -39,14 +39,17 @@ Kerberos, NTLM, PKINIT, la réplication chiffrée, LDAPS : tout repose sur trois
 ## 37.2 Les trois primitives
 
 **1. Chiffrement symétrique** - une **même clé** chiffre et déchiffre. Rapide. C'est le cœur de Kerberos : tickets et sessions sont chiffrés symétriquement.
+
 - Algorithmes : **AES** (128/256, le standard actuel), **RC4-HMAC** (legacy, à éliminer), **DES** (mort).
 - Propriété clé : celui qui a la clé peut tout lire *et* forger. D'où la criticité des clés de service et de `krbtgt`.
 
 **2. Chiffrement asymétrique** - une **paire** de clés : publique (partageable) et privée (secrète). Ce qui est chiffré avec l'une se déchiffre avec l'autre. Lent, donc réservé à établir la confiance / échanger une clé symétrique.
+
 - Algorithmes : **RSA** (basé sur la factorisation), **ECC** (courbes elliptiques, mêmes garanties avec des clés plus courtes).
 - Usage AD : PKI, PKINIT, LDAPS (handshake TLS), signature de la CA.
 
 **3. Fonction de hachage** - transforme une entrée en empreinte de taille fixe, **à sens unique** (irréversible) et résistante aux collisions.
+
 - Algorithmes : **SHA-256/384** (sain), **MD5/MD4/SHA-1** (cassés/faibles).
 
 ## 37.3 Le point qui explique pass-the-hash : le hash NT
@@ -56,6 +59,7 @@ Le fameux « hash NT » d'un compte AD, c'est simplement :
 NT hash = MD4( UTF-16LE( mot_de_passe ) )
 ```
 Trois observations qui déterminent une décennie d'attaques :
+
 1. **Aucun sel.** Deux utilisateurs avec le même mot de passe ont le même hash NT → tables précalculées (rainbow tables), et un hash volé sur une machine sert partout.
 2. **MD4, rapide.** Des milliards d'essais/seconde sur GPU → brute-force efficace des mots de passe faibles.
 3. **Le hash *est* le secret d'authentification en NTLM.** On n'a pas besoin du mot de passe en clair : présenter le hash suffit. **C'est ça, le pass-the-hash** (module 41), et c'est structurel, pas un bug.
@@ -94,6 +98,7 @@ On enseigne Kerberos comme s'il flottait dans le vide. Faux : **Kerberos n'est q
 ## 38.2 LSA et LSASS
 
 La **LSA** (Local Security Authority) est le sous-système de sécurité de Windows. Elle s'exécute dans le processus **`lsass.exe`**. Ses rôles :
+
 - Authentifier les logons (locaux et réseau).
 - Générer et détenir les **jetons d'accès** (module 42).
 - **Mettre en cache en mémoire les secrets d'authentification** (hash NT, tickets Kerberos, clés de session) pour permettre le SSO - c'est-à-dire ne pas redemander le mot de passe à chaque accès réseau.
@@ -120,6 +125,7 @@ Le mécanisme clé est **Negotiate/SPNEGO** : quand un client SMB, LDAP ou HTTP 
 ## 38.4 Winlogon et les credential providers
 
 La chaîne du logon interactif :
+
 1. **SAS** (Secure Attention Sequence) : le Ctrl+Alt+Suppr, qui garantit que tu parles au vrai Windows et pas à un faux écran de logon.
 2. **Winlogon** orchestre la session.
 3. **LogonUI** affiche l'interface, via des **credential providers** (mot de passe, PIN, carte à puce, biométrie - ils ont remplacé l'ancien GINA).
@@ -146,6 +152,7 @@ Chaque authentification a un **type**, visible dans l'événement `4624`. Les co
 ## 38.6 Les identifiants en cache (Domain Cached Credentials)
 
 Pour qu'un portable puisse ouvrir une session **sans DC joignable** (en déplacement), Windows met en cache une forme dérivée des identifiants : **MSCache v2 / DCC2**. Points théoriques :
+
 - Ce n'est **pas** le hash NT, mais un dérivé **PBKDF2** (salé, itéré) → **non rejouable** en pass-the-hash, et lent à casser hors-ligne (mais crackable si mot de passe faible).
 - Le nombre d'identités mises en cache est réglable par GPO (souvent réduit sur les postes sensibles ; 0 = aucun cache, mais alors plus de logon hors-ligne).
 - Stockés dans la ruche registre `SECURITY` - extractibles avec les privilèges SYSTEM.
@@ -173,6 +180,7 @@ Kerberos (« le chien à trois têtes ») repose sur un tiers de confiance qui m
 - **Le KDC** (Key Distribution Center), hébergé sur chaque DC, en deux services logiques :
   - **AS** (Authentication Service) : authentifie et délivre le **TGT**.
   - **TGS** (Ticket-Granting Service) : délivre les **tickets de service**.
+
 - **Le service** cible (partage, base SQL, site web…), identifié par un **SPN** (Service Principal Name).
 
 Idée maîtresse : un ticket est un **laissez-passer chiffré avec la clé du destinataire**, contenant une **clé de session** partagée. Comme seul le destinataire prévu peut le déchiffrer, il n'a pas besoin d'appeler qui que ce soit pour vérifier - d'où la scalabilité de Kerberos.
@@ -185,11 +193,13 @@ Le client chiffre un **horodatage** avec sa **clé longue durée** (dérivée du
 
 **Étape 1 - AS-REQ / AS-REP (obtenir le TGT).**
 Le client demande un TGT à l'AS. L'AS répond avec :
+
 - Une **clé de session TGS** (chiffrée avec la clé du client → lui seul la lit).
 - Le **TGT** lui-même, **chiffré avec la clé de `krbtgt`** → le client ne peut pas le lire ni le modifier ; il le stockera et le représentera tel quel. Le TGT contient l'identité du client, la clé de session, la durée de vie, et le **PAC** (39.4).
 
 **Étape 2 - TGS-REQ / TGS-REP (obtenir un ticket de service).**
 Pour joindre le service `SPN=cifs/SRV01`, le client renvoie son TGT + un **authentificateur** (horodatage chiffré avec la clé de session TGS, anti-rejeu). Le TGS déchiffre le TGT (il a la clé `krbtgt`), vérifie, et renvoie :
+
 - Une **clé de session de service**.
 - Le **ticket de service**, **chiffré avec la clé du compte du service** (le hash/clé AES du compte qui porte le SPN). Il contient une copie du PAC.
 
@@ -225,6 +235,7 @@ Le **PAC** (Privileged Attribute Certificate) est une structure **à l'intérieu
 ## 39.6 etypes, sel, kvno et FAST - le bloc anti-cassage
 
 **Types de chiffrement (etypes)**, négociés entre client et KDC :
+
 - **AES256-CTS-HMAC-SHA1 (18)** et **AES128 (17)** : sains, clés **salées** (module 37).
 - **RC4-HMAC (23)** : utilise le hash NT **sans sel** → cassable hors-ligne → à **désactiver**.
 - **DES** : mort.
@@ -317,6 +328,7 @@ Victime ──auth NTLM──▶ [Attaquant relais] ──même auth──▶ Se
 Souvent amorcé par du **poisoning** (LLMNR/NBT-NS, module non traité mais rappelé Partie 1) qui force la victime à s'authentifier vers l'attaquant. C'est le moteur de nombreuses compromissions internes, dont **ESC8** (relais vers l'endpoint HTTP d'une CA, Partie 2).
 
 **Défenses théoriques** (toutes visent à lier l'auth au canal/serveur) :
+
 - **Signature SMB** et **signature LDAP** : intègrent l'authentification, un relais est détecté.
 - **Channel Binding / EPA** (Extended Protection for Authentication) : lie l'auth au canal TLS.
 - **Désactiver LLMNR/NBT-NS** : coupe l'amorçage.
@@ -369,6 +381,7 @@ S - 1 - 5 - 21-3623811015-3361044348-30300820 - 1013
 ## 42.3 Le jeton d'accès
 
 À la fin d'un logon, la **LSA** (module 38) construit un **jeton d'accès** attaché à chaque processus de l'utilisateur. Il contient :
+
 - Le **SID de l'utilisateur** et **tous les SID de groupes** (résolus récursivement - l'expansion des groupes se fait *à l'ouverture de session*, d'où : changer les groupes d'un utilisateur ne prend effet qu'au **prochain logon**).
 - Les **privilèges** (SeBackupPrivilege, SeDebugPrivilege…) - distincts des permissions sur objet.
 - Le **niveau d'intégrité** (42.6).
@@ -379,6 +392,7 @@ S - 1 - 5 - 21-3623811015-3361044348-30300820 - 1013
 ## 42.4 Security descriptor et ACE
 
 Chaque objet sécurisable (fichier, clé de registre, objet AD, service…) porte un **security descriptor** :
+
 - **Owner** (propriétaire - peut toujours modifier la DACL, notion clé pour les escalades).
 - **DACL** (Discretionary ACL) : la liste des **ACE** qui accordent/refusent l'accès.
 - **SACL** (System ACL) : ce qui est **audité**.
@@ -390,6 +404,7 @@ Une **ACE** (Access Control Entry) = { type (Allow/Deny), SID visé, **masque d'
 ## 42.5 L'access check : la décision, étape par étape
 
 Quand un processus (avec son jeton) demande un accès (masque souhaité) à un objet :
+
 1. Si le demandeur est **propriétaire**, certains droits (READ_CONTROL, WRITE_DAC) sont implicites.
 2. Windows parcourt la **DACL dans l'ordre canonique** : **ACE Deny explicites d'abord**, puis **Allow explicites**, puis héritées.
 3. Un **Deny** correspondant au jeton pour un droit demandé → **refus immédiat**.
@@ -481,10 +496,12 @@ LDAP encode ses messages en **ASN.1** (langage de description de structures) sé
 ## 44.4 Le schéma : la grammaire des objets
 
 Le **schéma** définit *tout ce qui peut exister* dans la forêt. Il est unique et répliqué à toute la forêt (Partie 1).
+
 - **classSchema** : les classes d'objets. Hiérarchie à trois natures :
   - **abstraites** (ex. `top`) : briques de base non instanciables.
   - **structurelles** (ex. `user`, `group`) : les objets réels.
   - **auxiliaires** (ex. `securityPrincipal`) : greffent des attributs à d'autres classes.
+
 - **attributeSchema** : les attributs, chacun avec une **syntaxe** (chaîne, entier, DN, SID, horodatage…) et un **OID** unique mondial.
 - **objectClass** d'un objet liste ses classes → détermine ses attributs possibles. `objectCategory` sert d'index rapide pour les requêtes.
 
@@ -493,6 +510,7 @@ Le **schéma** définit *tout ce qui peut exister* dans la forêt. Il est unique
 ## 44.5 Naming contexts et référents
 
 La base est partitionnée en **naming contexts (NC)** (rappel Partie 1) :
+
 - **Schema NC**, **Configuration NC** → forêt entière.
 - **Domain NC** → le domaine.
 - **Application partitions** (ex. `DomainDnsZones`) → périmètre choisi.
@@ -548,6 +566,7 @@ Dans un annuaire **répliqué multi-maîtres** (module 47), on ne peut pas « ef
 ## 46.2 Sans corbeille : l'état « tombstone »
 
 Historiquement, supprimer un objet le transforme en **tombstone** (pierre tombale) :
+
 - `isDeleted = TRUE`, objet déplacé dans le conteneur **Deleted Objects**.
 - **La plupart des attributs sont dépouillés** (dont les appartenances de groupe) → un objet restauré depuis un tombstone revient **amputé** (il faut recréer ses groupes).
 - Le tombstone se **réplique** (les autres DC apprennent la suppression), puis persiste pendant le **tombstone lifetime** (**180 jours** par défaut sur les forêts modernes), avant d'être **physiquement purgé** par le ramasse-miettes.
@@ -607,6 +626,7 @@ Grâce à l'UTDV, quand DC01 envoie un changement à DC02, DC02 le propage à DC
 ## 47.5 Résolution de conflits au niveau attribut
 
 La réplication est **par attribut**, pas par objet. Si le même attribut est modifié « simultanément » sur deux DC, on départage dans cet ordre :
+
 1. **Version number** de l'attribut (le plus élevé gagne - chaque modif l'incrémente).
 2. Si égalité : **horodatage** de la modification.
 3. Si encore égalité : **GUID du DC** (arbitraire mais déterministe).
@@ -616,6 +636,7 @@ Cas particuliers : deux objets créés avec le même DN sur deux DC → l'un est
 ## 47.6 USN rollback : pourquoi les snapshots de DC sont dangereux
 
 Scénario catastrophe : tu restaures un DC via un **snapshot de VM** « à l'ancienne » (sans mécanisme de génération). Le DC revient à un USN **passé**, mais **réutilise** ensuite des USN déjà émis pour de **nouveaux** changements. Les partenaires, dont l'UTDV dit « j'ai déjà vu cet USN de ce DC », **ignorent** silencieusement ces nouveaux changements → **divergence permanente et invisible**. C'est l'**USN rollback**.
+
 - Protection historique : l'**Invocation ID change** lors d'une restauration *supportée* (Windows Server Backup) → les partenaires voient une « nouvelle instance » et resynchronisent proprement.
 - Protection moderne : le **VM-GenerationID** - les hyperviseurs récents exposent un compteur que Windows lit ; s'il change (rollback de snapshot détecté), AD réinitialise l'Invocation ID automatiquement. *C'est pourquoi on peut aujourd'hui snapshoter un DC sur un hyperviseur compatible - mais il faut le savoir et ne pas s'y fier aveuglément.*
 
@@ -654,6 +675,7 @@ Avant toute authentification, le client doit **trouver un contrôleur de domaine
    _gc._tcp._msdcs...                          → les catalogues globaux
    ```
    Les enregistrements **par site** (`_sites`) sont la clé de la proximité.
+
 2. Le DNS renvoie une **liste** de DC candidats.
 3. Le client envoie un **CLDAP ping** (LDAP *connectionless*, sur UDP) à des candidats : un petit `search` qui demande « qui es-tu, quel site sers-tu, es-tu vivant ? ». Le **premier qui répond utilement** et couvre le bon site est retenu.
 4. Netlogon met en cache le DC trouvé (`nltest /dsgetdc:` pour l'inspecter).
@@ -696,6 +718,7 @@ Chaque *type* de paramètre a son **CSE** : un module côté client qui sait app
 ## 49.5 Le calcul du RSoP : LSDOU, filtres, loopback
 
 Le **Resultant Set of Policy** est calculé ainsi (rappel enrichi de la Partie 1) :
+
 1. Ordre **LSDOU** : Local → Site → Domain → OU (parent → enfant). **Le dernier appliqué gagne.**
 2. **Block Inheritance** (sur une OU) coupe l'héritage du dessus…
 3. …sauf les liens **Enforced**, qui traversent tout et gagnent en dernier.
@@ -722,6 +745,7 @@ On a *déployé* une PKI en Partie 2. Ici : la structure d'un certificat, la val
 ## 50.2 Anatomie d'un certificat X.509
 
 Un certificat **X.509** lie une **clé publique** à une **identité**, le tout **signé** par une CA. Champs essentiels :
+
 - **Subject** (à qui) / **Issuer** (quelle CA).
 - **Validity** (pas avant / pas après).
 - **Public key**.
@@ -729,11 +753,13 @@ Un certificat **X.509** lie une **clé publique** à une **identité**, le tout 
   - **Key Usage (KU)** / **Extended Key Usage (EKU)** : à quoi sert le certif (ex. *Client Authentication*, *Smart Card Logon*, *Server Authentication*). L'EKU **Client Authentication** est ce qui autorise l'auth réseau - d'où sa centralité dans les attaques ESC (Partie 2).
   - **Subject Alternative Name (SAN)** : noms/UPN alternatifs - **le point sensible d'ESC1** (SAN arbitraire = usurpation).
   - **AKI/SKI** (identifiants de clés), **CDP** (où trouver la CRL), **AIA** (où trouver le certif de la CA).
+
 - **Signature** de la CA sur tout le reste.
 
 ## 50.3 Validation de chaîne
 
 Pour faire confiance à un certificat, le validateur :
+
 1. **Construit la chaîne** jusqu'à une **racine de confiance** (Trusted Root).
 2. Vérifie **chaque signature** de la chaîne, la **période de validité**, les **contraintes** (Basic Constraints : est-ce bien une CA ? Name Constraints, path length).
 3. Contrôle la **révocation** : **CRL** (liste téléchargée périodiquement via le CDP) ou **OCSP** (interrogation en temps réel, une réponse par certificat). CRL = simple mais latence/volume ; OCSP = frais mais réactif.
@@ -742,12 +768,14 @@ Pour faire confiance à un certificat, le validateur :
 ## 50.4 PKINIT : Kerberos avec un certificat au lieu d'un mot de passe
 
 **PKINIT** est l'extension de pré-authentification (module 39, étape 0) où le client **prouve son identité avec sa clé privée** au lieu d'un secret dérivé du mot de passe :
+
 - Le client **signe** les données de pré-auth avec sa **clé privée** ; le KDC valide avec le **certificat** (et la chaîne). C'est le mécanisme de la **carte à puce** et de **Windows Hello for Business** (Key Trust).
 - En retour, le KDC peut fournir la clé nécessaire à la suite Kerberos. À partir de là, le client a un **TGT normal** - donc un certificat valide = un TGT = une identité complète.
 
 ## 50.5 Le maillon critique : le mapping certificat → compte AD
 
 Un certificat doit être **relié à un compte** AD. Deux façons :
+
 - **Implicite** : via l'**UPN** présent dans le SAN du certificat → AD trouve le compte au même UPN.
 - **Explicite** : via l'attribut **`altSecurityIdentities`** du compte, qui référence le certificat (par émetteur+sujet, ou par clé).
 
@@ -756,6 +784,7 @@ Un certificat doit être **relié à un compte** AD. Deux façons :
 ## 50.6 Shadow Credentials (l'attaque qui prouve la compréhension)
 
 L'attribut **`msDS-KeyCredentialLink`** stocke des **clés publiques** utilisables pour l'authentification par clé (le mécanisme *Key Trust* de Windows Hello). Si un attaquant peut **écrire** cet attribut sur un compte cible (droit obtenu via une ACL faible, module 42), il y **ajoute sa propre clé** → il peut alors s'authentifier en **PKINIT** comme ce compte et obtenir un TGT. C'est **Shadow Credentials**.
+
 - Défense : restreindre l'écriture de `msDS-KeyCredentialLink`, surveiller ses modifications, appliquer le mapping fort.
 - Ce que ça prouve : tu as relié **ACL (42) + PKINIT (50) + TGT (39)** en une seule chaîne. C'est exactement le raisonnement attendu d'un ingénieur sécurité.
 
@@ -776,6 +805,7 @@ Quand un utilisateur du domaine A accède à une ressource du domaine B, comment
 ## 51.2 La clé d'approbation et les tickets de référence
 
 Établir une approbation crée, de chaque côté, un **compte d'approbation** partageant une **clé de trust** (un secret commun aux deux domaines). Le parcours Kerberos inter-domaines :
+
 1. L'utilisateur de A a un TGT de A.
 2. Pour une ressource de B, il demande à son KDC (A) un **ticket de référence** (referral) - un TGT inter-royaume **chiffré avec la clé d'approbation** A↔B.
 3. Il présente ce referral au KDC de **B**, qui le déchiffre (il a la clé d'approbation), constate qu'A l'a authentifié, et délivre un **ticket de service** pour la ressource de B.
@@ -786,6 +816,7 @@ Quand un utilisateur du domaine A accède à une ressource du domaine B, comment
 Ici se joue **pourquoi la forêt, et non le domaine, est la limite de sécurité**. Rappel (module 42) : le jeton porte les SID de l'utilisateur **et** son `sidHistory`. Sans protection, un administrateur du domaine A pourrait injecter dans un jeton le **SID de « Enterprise Admins »** (ou de Domain Admins de B) via sidHistory, et se voir accorder ces droits en B.
 
 Le **SID filtering** (quarantaine) est la contre-mesure : lorsqu'une authentification franchit une approbation, B **filtre / rejette les SID qui n'appartiennent pas au domaine d'origine A** (notamment ceux d'autres domaines et les SID à privilèges). Ainsi une identité de A ne peut pas « emporter » des SID forgés de B.
+
 - **Entre forêts** (external / forest trust) : SID filtering **activé par défaut** → isolation. C'est ce qui fait de la **forêt** une frontière de sécurité.
 - **Au sein d'une même forêt** : SID filtering **désactivé** entre domaines (les domaines d'une forêt se font pleinement confiance) → un attaquant Domain Admin d'un domaine peut, par des techniques connues, atteindre les autres. **Conclusion : le domaine n'est PAS une frontière de sécurité ; la forêt l'est.** (Rappel martelé depuis la Partie 1 - tu en as maintenant la preuve cryptographique.)
 - **Selective Authentication** : durcissement supplémentaire d'un trust où l'on doit *explicitement* autoriser chaque identité étrangère à s'authentifier sur chaque ressource.
@@ -816,10 +847,13 @@ Tu as disséqué chaque pièce. Ce module les fait tourner ensemble dans **une s
 5. Pré-authentification : timestamp chiffré avec la clé longue durée
    dérivée du mot de passe (PBKDF2 salé, AES)                              [M37, M39]
    - ou, si carte à puce/WHfB : PKINIT, preuve par clé privée              [M50]
+
 6. AS-REQ/AS-REP → TGT chiffré avec la clé krbtgt + clé de session         [M39]
    Le TGT embarque le PAC (SID + groupes, signé par le KDC)                [M39, M42]
+
 7. LSA construit le JETON d'accès : SID user + SID groupes (expansés)
    + privilèges + niveau d'intégrité                                       [M42]
+
 8. Session ouverte. Secrets réutilisables mis en cache dans LSASS
    (sauf isolation par Credential Guard)                                   [M38]
 ```
@@ -831,11 +865,14 @@ Tu as disséqué chaque pièce. Ce module les fait tourner ensemble dans **une s
 9.  L'utilisateur ouvre \\SRV01\Compta\bilan.xlsx
 10. SMB → SSPI → Negotiate → Kerberos (SPN = cifs/SRV01)                    [M38, M39]
     (si pas de SPN résoluble / DC injoignable / horloge décalée → NTLM)    [M38, M41]
+
 11. TGS-REQ (TGT + authentificateur) → TGS-REP :
     ticket de service chiffré avec la CLÉ DU COMPTE de SRV01               [M39]
+
 12. AP-REQ : le client présente le ticket + authentificateur à SRV01       [M39]
 13. SRV01 déchiffre le ticket avec SA PROPRE clé (sans appeler le DC),
     lit le PAC → connaît l'utilisateur et ses groupes                       [M39, M42]
+
 14. SRV01 crée un jeton d'IMPERSONATION représentant l'utilisateur         [M42]
 ```
 
@@ -844,6 +881,7 @@ Tu as disséqué chaque pièce. Ce module les fait tourner ensemble dans **une s
 ```
 15. ACCESS CHECK : le jeton (SID + groupes) est confronté à la DACL
     du fichier bilan.xlsx                                                   [M42]
+
 16. Parcours canonique : Deny explicites → Allow explicites → héritées
 17. Vérif du niveau d'intégrité (MIC) en complément de la DACL             [M42]
 18. (Si DAC configuré) évaluation des ACE conditionnelles / claims          [M43]
@@ -893,6 +931,7 @@ Tu as parcouru l'intégralité de l'univers Active Directory / Windows Server on
 La Partie 5 est le liant : elle transforme une compétence opérationnelle (« je sais faire ») en une compréhension d'ingénieur (« je sais pourquoi, et j'en déduis les failles »). C'est la différence entre exécuter et concevoir, entre subir un incident et le disséquer.
 
 **Ce qu'il te reste**, si tu veux franchir une dimension (les deux se construisent sur exactement ce socle) :
+
 - **Trajectoire 2 - hybride/cloud** : Entra ID, Entra Connect, Conditional Access, PIM, Intune. Tu verras que SAML/OIDC (M39, ADFS) et l'autorisation par claims (M43) s'y retrouvent, transposés.
 - **Trajectoire 3 - tout-en-code (DevSecOps, 100 % on-prem possible)** : Terraform/DSC/Ansible, GPO/PKI dans Git, CI/CD, tests Pester, SIEM, et purple teaming (BloodHound/PingCastle/Certipy) - où toute la lecture offensive de la Partie 5 devient de l'audit automatisé.
 
