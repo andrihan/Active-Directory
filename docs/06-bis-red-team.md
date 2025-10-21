@@ -43,6 +43,7 @@ C'est le malentendu fondateur : Red Team, pentest et purple utilisent **les mêm
 ## 62.2 Le mandat Red Team : plus exigeant encore
 
 Au-delà du scope de la Partie 6, une mission Red Team formalise :
+
 - **Les objectifs (crown jewels)** : « prouver l'accès à la base RH » plutôt que « pentester le SI ». On opère **par objectif**, pas par exhaustivité.
 - **Les règles d'engagement (ROE)** fines : techniques autorisées/interdites, systèmes hors-limites, fenêtres horaires, seuil de « stop ».
 - **Le modèle de départ** : *black box* (rien), *assume breach* (on te donne un pied dans la porte - le plus rentable, car on ne perd pas des semaines sur l'accès initial), ou *hybride*.
@@ -85,6 +86,7 @@ Un Red Team mûr ne « balance pas toute la boîte à outils ». Il **émule un 
 ## 63.2 MITRE ATT&CK comme langage commun
 
 **ATT&CK** (revu en Partie 6) devient ici un outil de **planification** :
+
 - On choisit un **groupe** dans ATT&CK (chaque groupe a sa fiche : techniques utilisées, outils).
 - On construit un **plan d'émulation** : la séquence de techniques `Txxxx` que cet acteur emploierait.
 - On mappe chaque technique à **ce que la Blue Team devrait voir** (data sources ATT&CK) → c'est déjà la grille de restitution du module 67.
@@ -133,6 +135,7 @@ Ce que la Partie 6 ne couvrait pas : **comment on pilote une opération à dista
 ## 64.3 Les frameworks C2 (paysage)
 
 Tous publics et largement documentés :
+
 - **Cobalt Strike** - le standard commercial du secteur (et, ironie, très utilisé par de vrais attaquants → très surveillé). Concept de *Malleable C2 profiles* pour façonner le trafic.
 - **Sliver** (BishopFox) - open source, moderne, cross-platform, devenu très populaire.
 - **Mythic** - framework modulaire open source, multi-agents.
@@ -143,6 +146,7 @@ Tous publics et largement documentés :
 ## 64.4 🛡️ Détection du C2 (le pivot blue, central ici)
 
 C'est LA partie qui compte pour un défenseur, et elle est riche :
+
 - **Analyse de balise (beaconing)** : détecter la **régularité** des callbacks - même avec jitter, un implant génère un motif temporel statistiquement anormal. Des outils/analytics (ex. **RITA**, analyses NetFlow) traquent ça.
 - **Réputation & anomalies réseau** : connexions vers des domaines jeunes, catégorisés faiblement, JA3/JA3S (empreintes TLS) inhabituelles, volumes montants anormaux.
 - **DNS tunneling** : requêtes DNS anormalement longues/fréquentes/entropiques → C2 sur DNS.
@@ -158,9 +162,7 @@ C'est LA partie qui compte pour un défenseur, et elle est riche :
 4. Explique pourquoi les redirecteurs protègent le team server, et ce que la Blue Team voit (le redirecteur) vs ce qu'elle ne voit pas (le C2 réel).
 
 ---
-EOF
-echo "Modules 62-64 ajoutés"
-wc -l /home/claude/cours-ad-partie6bis-redteam.md
+
 # Module 65 - OPSEC & évasion : concepts et détection
 
 ## 65.1 Le cadre de ce module (à lire d'abord)
@@ -259,6 +261,7 @@ Une opération Red Team ne vaut **rien** sans sa restitution. Le livrable n'est 
 ## 67.2 Le rapport d'opération
 
 Structure attendue :
+
 - **Synthèse exécutive** (pour la direction, sans jargon) : objectif atteint ou non, niveau de risque, 3-5 messages clés.
 - **Récit d'attaque (attack narrative)** : l'histoire chronologique de l'opération, étape par étape, lisible.
 - **Findings priorisés** : chaque faiblesse (technique **ou** humaine **ou** de détection), son risque, ses preuves, sa remédiation. Renvoi systématique aux Parties 1-4 pour la correction.
@@ -296,6 +299,7 @@ Cette table **est** le pont vers ton module 60 (détection) et 63 (heatmap ATT&C
 **Objectif** : conduire une opération Red Team complète sur `corp.lab.local`, la détecter, la restituer, et prouver l'amélioration.
 
 Checklist :
+
 - [ ] Plan d'opération (objectif/crown jewel, *assume breach*, ROE) - module 62.
 - [ ] Plan d'émulation ATT&CK d'un adversaire choisi + heatmap de couverture - module 63.
 - [ ] C2 opéré dans le lab, callback caractérisé et **détecté** côté blue - module 64.
@@ -326,6 +330,7 @@ Avec la Partie 6 (techniques) et cette Partie 6-bis (discipline opérationnelle)
 Le point que je veux te laisser, avec ma casquette d'ingénieur : **la maîtrise offensive n'a de valeur que rendue à la défense.** Un opérateur qui décroche Domain Admin mais ne fait pas progresser le SOC a échoué. Le meilleur red teamer est celui qui rend la prochaine opération plus difficile - la sienne comprise.
 
 **Et la suite, définitivement** : il n'y a plus d'offensif on-prem à ajouter. Les deux marches restantes sont un changement de dimension, et toutes deux capitalisent sur cet axe :
+
 - **Trajectoire 2 - hybride/cloud** : l'offensive des identités cloud (Entra ID, jetons OAuth, Entra Connect, abus de Conditional Access). Le Red Team moderne y passe de plus en plus.
 - **Trajectoire 3 - tout-en-code / DevSecOps** : où cette Partie 6-bis se **cristallise** en audit continu - CALDERA/Atomic Red Team en CI, la heatmap ATT&CK recalculée à chaque changement, la sécurité comme test de non-régression. C'est, avec ta casquette Google, la marche la plus alignée.
 
