@@ -312,9 +312,6 @@ Set-ItemProperty "$base\Transcription" -Name EnableTranscripting -Value 1 -Type 
 Set-ItemProperty "$base\Transcription" -Name OutputDirectory -Value "\\WEC01\PSTranscripts$"
 ```
 > Les transcripts partent sur un partage centralisé (append-only, hors de portée d'un admin local de la source).
-EOF
-echo "Sections 1-3 ajoutées"
-wc -l /home/claude/cours-ad-partie7bis-annexe-configs.md
 ---
 
 # 4. gMSA - cycle de vie complet
