@@ -119,9 +119,7 @@ Chaque OU de tooling reçoit des GPO **plus strictes** que la prod : refus de lo
 3. Crée une GPO `GPO-C-Tier0-Tooling` liée à l'OU tooling qui **interdit le logon interactif** aux comptes non-Tier 0 (User Rights Assignment : « Deny log on locally / through RDP »).
 
 ---
-EOF
-echo "Modules 75-76 ajoutés"
-wc -l /home/claude/cours-ad-partie7bis-gouvernance.md
+
 # Module 77 - Déploiement à l'échelle par GPO
 
 ## 77.1 Le principe : jamais à la main, toujours déclaratif
@@ -156,6 +154,7 @@ if (-not $svc) {
 ## 77.3 Déployer les agents (Winlogbeat / Wazuh / EDR)
 
 Deux voies AD-natives :
+
 - **GPO Software Installation** (pour les MSI) : `Computer > Policies > Software Settings > Software Installation` → assigner le MSI de l'agent. Installé au démarrage, désinstallable proprement. Idéal pour un agent packagé en MSI.
 - **Tâche planifiée GPO** (comme Sysmon) pour les installeurs non-MSI ou avec paramètres (clé d'inscription Wazuh, adresse du manager) :
 ```powershell
@@ -232,6 +231,7 @@ Test-ADServiceAccount gmsa-siemfwd     # True attendu
 ## 78.3 Délégation : donner à chaque outil *juste* ce qu'il lui faut
 
 Principe de moindre privilège appliqué finement (rappel délégation P1 M6.6) :
+
 - **SIEM / agents** : besoin de **lire** des logs et éventuellement l'annuaire. → `DL_Read_SecurityLogs`, appartenance à *Event Log Readers*, **lecture seule** LDAP. Jamais d'écriture.
 - **SOAR** : besoin d'**agir** pour le confinement (désactiver un compte, le sortir de groupes). → **délégation ciblée** sur les OU concernées, **pas** Domain Admin :
 ```powershell
@@ -297,6 +297,7 @@ Ton tooling de sécurité voit et contrôle tout - donc c'est **la première cib
 ## 79.2 Rendre les logs inviolables
 
 Un attaquant admin local peut **effacer les journaux** (`wevtutil cl Security`, event **1102**). La parade n'est pas d'empêcher l'effacement (impossible pour un admin local), c'est de **sortir les logs de la machine plus vite qu'il ne peut les effacer** :
+
 - **WEF vers le WEC en quasi temps réel** (Refresh court) : même si l'attaquant vide le journal local, la copie est déjà partie. Les logs vivent **hors de portée** de l'hôte compromis.
 - **Immutabilité côté SIEM** (rappel P4 3-2-1-1-0) : stockage WORM / rétention verrouillée → l'attaquant qui atteint le SIEM ne peut pas réécrire l'historique.
 - **Compte de sauvegarde/collecte hors domaine de prod** (P4) : si le domaine tombe, le référentiel de logs n'est pas atteignable avec des identifiants AD.
@@ -305,6 +306,7 @@ Un attaquant admin local peut **effacer les journaux** (`wevtutil cl Security`, 
 ## 79.3 Anti-sabotage des capteurs
 
 L'attaquant tentera de **désactiver Sysmon** (`sysmon -u`, arrêt de service, altération de config) ou d'aveugler ETW/AMSI (P6-bis M65). On surveille l'**absence** :
+
 - **Arrêt de service Sysmon** → event système **7036/7040** sur le service `Sysmon64` ; **Sysmon Event 255** (erreur) ; **désinstallation** du driver.
 - **Changement de config Sysmon** → **Sysmon Event 16** (le capteur logue lui-même sa reconfiguration) : toute config non poussée par ta GPO = suspecte.
 - **Chute de volume** de télémétrie (Sysmon/Security/PowerShell) → détection d'**aveuglement** (P6-bis M65) : une source qui se tait est une alerte.
@@ -318,6 +320,7 @@ Règle SIEM "capteur muet" : pour chaque hôte, si volume(Sysmon events, 1h) == 
 ## 79.4 Accès Tier 0 strict au tooling
 
 Rappel P4, appliqué au tooling (module 75) :
+
 - SIEM / WEC / console EDR / SOAR / PKI administrés **uniquement depuis un PAW**, avec des comptes **Tier 0 dédiés** (`adm-t0-*`), jamais des comptes bureautiques.
 - Comptes T0 dans **Protected Users** (P4) : pas de cache, NTLM bloqué, délégation interdite.
 - **Authentication Policies / Silos** : verrouiller *où* les comptes T0 peuvent s'authentifier (uniquement sur les actifs T0).
@@ -326,6 +329,7 @@ Rappel P4, appliqué au tooling (module 75) :
 ## 79.5 Break-glass : le compte de secours maîtrisé
 
 Que se passe-t-il si l'AD est compromis/inaccessible en plein incident et que tes JEA/délégations tombent ? Il faut des **comptes break-glass** :
+
 - 1 ou 2 comptes d'urgence à privilèges élevés, **hors des dépendances normales** (pas soumis à une éventuelle politique d'accès conditionnel qui pourrait les bloquer).
 - Identifiants **longs, aléatoires, scindés** (deux moitiés détenues par deux personnes) et **stockés physiquement hors ligne** (coffre).
 - **Aucune utilisation en temps normal** → toute authentification de ces comptes déclenche une **alerte immédiate de sévérité maximale** (c'est un honeytoken privilégié).
@@ -385,6 +389,7 @@ La détection de dérive est elle-même une **alerte de sécurité** : une confi
 **Objectif** : gouverner l'intégralité du stack de sécurité de `corp.lab.local` par AD, de façon versionnée et vérifiable.
 
 Checklist :
+
 - [ ] OU dédiées `Security-Tooling` (Tier 0) + groupes SOC en AGDLP.
 - [ ] Sysmon + Detection Baseline **déployés par GPO** à l'échelle, config versionnée en Git, couverture vérifiée (100 %).
 - [ ] Tout le tooling en **gMSA** ; **aucun** compte de service Domain Admin (audité et prouvé).
