@@ -45,6 +45,7 @@ Arrivée électrique (utility) ──▶ Transfert (ATS) ──▶ Groupe élect
 ```
 
 Notions à maîtriser :
+
 - **UPS (onduleur)** : absorbe les micro-coupures et tient sur batterie le temps que le **groupe électrogène** prenne le relais.
 - **PDU** : la multiprise intelligente du rack (souvent mesurée/pilotable en réseau — donc un objet à surveiller *et* à sécuriser, cf. module 90).
 - **Dual-feed A/B** : deux chaînes électriques **indépendantes** (deux UPS, deux PDU). Un serveur de prod a **deux alimentations (PSU)**, une sur A, une sur B.
@@ -65,6 +66,7 @@ C'est le vocabulaire qu'on te demandera :
 ## 81.4 Le refroidissement
 
 Un serveur transforme ~100 % de son électricité en chaleur. La densité au rack est **limitée par le thermique** avant de l'être par l'espace ou le réseau.
+
 - **Confinement allées chaudes/froides** (hot/cold aisle) : les serveurs aspirent l'air froid en façade (allée froide) et rejettent le chaud à l'arrière (allée chaude, confinée et évacuée). On ne mélange jamais les deux.
 - **Delta T** : l'écart de température entrée/sortie ; pilote le dimensionnement de la clim (CRAC/CRAH).
 - **Conséquence design** : un rack « plein » de serveurs denses peut être **thermiquement infaisable** bien avant d'être plein en U. On répartit la charge thermique.
@@ -97,6 +99,7 @@ Le PUE pilote les **coûts** et l'**empreinte carbone** — donc les décisions 
 ## 81.7 Sûreté physique (dans le modèle de menace)
 
 Angle DevSecOps souvent oublié : **l'accès physique bat presque toutes tes défenses logiques.** Quelqu'un devant le serveur peut booter sur un média externe, extraire un disque, brancher sur le port de management. Donc :
+
 - Contrôle d'accès (badge, biométrie, mantrap, journalisation).
 - Détection/extinction incendie (pré-action, agents propres).
 - **Chiffrement au repos (BitLocker + TPM)** pour que le vol d'un disque ne livre pas les données — le pont entre facilities et ta sécurité logique.
@@ -188,9 +191,7 @@ Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "Storage" -Access -
 4. Pourquoi la NIC BMC ne doit-elle jamais partager le réseau data ? (relie au module 90)
 
 ---
-EOF
-echo "Modules 81-82 ajoutés"
-wc -l /home/claude/cours-ad-partie8-datacenter.md
+
 # Module 83 — L'architecture réseau du data center (fabric)
 
 ## 83.1 Pourquoi le vieux modèle est mort
@@ -211,6 +212,7 @@ L'architecture historique en trois couches (**core → agrégation → accès**)
 ```
 
 Propriétés fondamentales :
+
 - Chaque **leaf** (= le ToR du module 82) est connecté à **tous les spines** — jamais leaf-à-leaf, jamais spine-à-spine.
 - **Tout serveur est à exactement 2 sauts de tout autre** (leaf → spine → leaf) : latence prévisible, débit est-ouest élevé.
 - **Scalabilité horizontale** : besoin de plus de bande passante ? on ajoute un spine. Plus de serveurs ? on ajoute un leaf.
@@ -242,6 +244,7 @@ Contre-intuitif au début : **BGP** (le protocole d'Internet) est devenu le stan
 ## 83.5 Overlay : VXLAN / EVPN
 
 Pour découpler le réseau **logique** du réseau **physique** (indispensable en cloud/multi-tenant) :
+
 - **VXLAN** : encapsule du L2 dans du L3 (UDP) → on étend un VLAN au-dessus d'un fabric routé, à travers tout le DC, sans grand domaine L2 physique. Le VLAN devient un **VNI** (VXLAN Network Identifier), 16 M possibles vs 4094 VLAN.
 - **EVPN** (via BGP) : le **plan de contrôle** de VXLAN — distribue les adresses MAC/IP proprement, remplace le « flood-and-learn ». **VXLAN/EVPN** est le socle du DC moderne et du SDN.
 
@@ -283,6 +286,7 @@ C'est **le** module conceptuel de toute la partie. Deux façons opposées de tra
 ## 84.2 Design-for-failure : la panne est normale
 
 À l'échelle, le matériel tombe **en permanence** — c'est statistique. Sur 1000 serveurs, il y a toujours quelque chose de cassé *maintenant*. La conséquence Google/SRE :
+
 - On **conçoit pour que la panne d'un composant soit un non-événement** : la couche logicielle (clustering P3, réplication P1, load balancing) absorbe.
 - On ne se lève pas la nuit pour un disque : la **redondance** encaisse, un **ticket de remplacement** se génère, le remplacement se fait en journée, en lot.
 - Le **MTTR** (P7) d'un serveur devient « temps de re-provisionnement automatique », pas « temps de réparation manuelle ».
@@ -307,6 +311,7 @@ Le pet n'est pas *toujours* un péché : une base de données monolithique histo
 Le **BMC** (Baseboard Management Controller) est un **micro-ordinateur autonome intégré à la carte mère**, avec son propre processeur, sa RAM, son OS et son port réseau — **indépendant du serveur principal**. Il fonctionne même serveur éteint (tant qu'il y a du courant). Noms commerciaux : **iDRAC** (Dell), **iLO** (HPE), **XCC** (Lenovo), **IPMI** (le vieux standard générique).
 
 Ce qu'il permet, **à distance, sans présence physique** :
+
 - Allumer / éteindre / redémarrer (power cycle).
 - **Console distante (KVM-over-IP)** : voir l'écran, le BIOS, comme si tu étais devant.
 - Monter une **ISO virtuelle** → réinstaller l'OS à distance.
@@ -434,6 +439,7 @@ boot
 ## 86.4 Les orchestrateurs bare-metal modernes (mixte/Linux)
 
 Pour gérer une flotte hétérogène **as-a-service** :
+
 - **MAAS** (Metal-as-a-Service, Canonical) : transforme le bare-metal en « cloud privé » — commissioning automatique, déploiement d'OS à la demande, API.
 - **Foreman** : provisioning + gestion de configuration (Puppet/Ansible), inventaire.
 - **Tinkerbell** (CNCF) : provisioning bare-metal cloud-native, orienté workflow.
@@ -495,6 +501,7 @@ L'approche d'ingénieur : la **version cible de firmware par modèle** est décl
 ## 88.1 La source de vérité : tu ne gères pas ce que tu ne connais pas
 
 À l'échelle, la première question est : *qu'ai-je, où, dans quel état ?* Sans **source de vérité** fiable, l'automatisation provisionne à l'aveugle. On distingue :
+
 - **CMDB** (Configuration Management Database) : l'inventaire logique des actifs et de leurs relations.
 - **DCIM** (Data Center Infrastructure Management) : le physique — racks, U, alimentation, thermique, câblage.
 
@@ -546,6 +553,7 @@ SNMP (switches, PDU) ─┘                       │
 ```
 
 Exporters Prometheus dédiés au matériel :
+
 - **`ipmi_exporter`** : capteurs via IPMI.
 - **`redfish_exporter`** : santé/capteurs via Redfish (moderne).
 - **`node_exporter`** : côté OS (dont SMART via `smartmon` textfile collector).
@@ -610,6 +618,7 @@ groups:
 ## 90.1 Le BMC : ton plus grand pouvoir, ta plus grande surface d'attaque
 
 Le BMC (M85) peut tout : allumer, réinstaller, monter une ISO, lire la console. **Compromettre le BMC = posséder physiquement le serveur, à distance.** Or le BMC est un point faible notoire :
+
 - Il fait tourner **son propre OS embarqué** (souvent Linux léger), rarement patché, avec un **historique de CVE graves** (certaines permettant la prise de contrôle totale).
 - Il est **trop souvent sur un réseau de management à plat**, accessible depuis trop d'endroits, avec des **identifiants par défaut** jamais changés.
 - Il **survit à la réinstallation de l'OS** → un implant BMC est quasi indélogeable.
@@ -626,6 +635,7 @@ curl -sk -u admin:'***' -X PATCH -H 'Content-Type: application/json' \
   https://10.0.0.42/redfish/v1/AccountService/Accounts/2
 ```
 Checklist de durcissement BMC :
+
 - **Changer tous les identifiants par défaut** (idcalvin/root…), comptes **individuels** (pas de compte partagé), idéalement fédérés à AD/LDAP avec MFA quand le BMC le supporte.
 - **HTTPS/Redfish uniquement**, désactiver IPMI-over-LAN si non nécessaire (protocole faible), désactiver les services legacy.
 - **Réseau OOB isolé** (VLAN/VRF dédié), ACL stricte, accès via **bastion Tier 0** seulement.
@@ -806,6 +816,7 @@ Dépôt Git (intentions/config)   ├──▶  CI/CD  ──▶  génère confi
 **Objectif** : provisionner et gouverner une (petite) flotte de bout en bout, déclarativement.
 
 Checklist :
+
 - [ ] **NetBox** modélise racks, serveurs, switches, câblage, IPAM, VLAN — source de vérité.
 - [ ] **Fabric** leaf-spine (même simulé) ; serveurs **dual-homés** (M82) vers 2 ToR en MLAG.
 - [ ] **Alimentation** dual-feed A/B planifiée (M81) ; réseau **OOB isolé** pour les BMC (M90).
