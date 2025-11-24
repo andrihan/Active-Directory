@@ -1,0 +1,77 @@
+.ad-progress-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ad-progress-checkbox input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: var(--md-primary-fg-color);
+  cursor: pointer;
+}
+
+.ad-progress-module--page {
+  display: flex;
+  margin: 0.5em 0 1.5em;
+  padding: 0.6em 1em;
+  border-radius: 0.3em;
+  background: var(--md-code-bg-color);
+  font-weight: 600;
+}
+
+.ad-progress-section {
+  float: left;
+  margin-right: 0.5em;
+  margin-top: 0.35em;
+}
+
+.progress-tracker {
+  margin: 1.5em 0 2em;
+  padding: 1em 1.25em;
+  border-radius: 0.4em;
+  background: var(--md-code-bg-color);
+}
+
+.ad-progress-bar {
+  height: 0.6em;
+  border-radius: 999px;
+  background: var(--md-default-fg-color--lightest);
+  overflow: hidden;
+  margin-bottom: 0.6em;
+}
+
+.ad-progress-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--md-primary-fg-color);
+  transition: width 0.2s ease;
+}
+
+.ad-progress-summary {
+  margin: 0 0 0.75em;
+  font-weight: 600;
+}
+
+.ad-progress-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.4em 1.5em;
+}
+
+.ad-progress-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.ad-progress-list a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
