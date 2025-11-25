@@ -1,0 +1,76 @@
+site_name: Active Directory
+site_description: >-
+  Cours intégral sur Active Directory Domain Services : de l'installation à la
+  sécurité offensive, sur un unique lab corp.lab.local.
+site_url: https://andrihan.github.io/Active-Directory/
+repo_url: https://github.com/andrihan/Active-Directory
+repo_name: andrihan/Active-Directory
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+theme:
+  name: material
+  language: fr
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Passer en mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Passer en mode clair
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/progress.js
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      title: Sur cette page
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - footnotes
+  - def_list
+
+nav:
+  - Accueil: index.md
+  - Partie 1 - Le cœur d'AD DS: 01-fondations.md
+  - Partie 2 - L'écosystème de services: 02-ecosysteme.md
+  - Partie 3 - La résilience: 03-resilience.md
+  - Partie 4 - L'exploitation SRE-grade: 04-exploitation-sre.md
+  - Partie 5 - Les fondements théoriques: 05-theorie.md
+  - Partie 6 - Purple Team AD: 06-purple-team.md
+  - Partie 6-bis - Opérations Red Team: 06-bis-red-team.md
+  - Partie 7-bis - Gouvernance des outils de sécurité: 07-bis-gouvernance.md
+  - "Partie 7-bis (annexe) - Commandes & configurations": 07-bis-annexes.md
+  - Partie 8 - Gestion de flotte & Data Center: 08-datacenter.md
