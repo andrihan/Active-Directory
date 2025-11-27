@@ -1,5 +1,4 @@
 # Active Directory sur Windows Server 2022
-
 ### De l'installation à la sécurité offensive - un parcours complet en 11 modules
 
 Ce dépôt contient un **cours intégral sur Active Directory Domain Services (AD DS)**, pensé comme une progression cohérente de bout en bout : on ne se contente pas d'installer des rôles, on apprend à **concevoir, sécuriser, fiabiliser, exploiter, comprendre et attaquer** un annuaire d'entreprise.
