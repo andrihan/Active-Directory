@@ -3,16 +3,11 @@ site_description: >-
   Cours intégral sur Active Directory Domain Services : de l'installation à la
   sécurité offensive, sur un unique lab corp.lab.local.
 site_url: https://andrihan.github.io/Active-Directory/
-repo_url: https://github.com/andrihan/Active-Directory
-repo_name: andrihan/Active-Directory
-edit_uri: edit/main/docs/
 docs_dir: docs
 
 theme:
   name: material
   language: fr
-  icon:
-    repo: fontawesome/brands/github
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -37,7 +32,6 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
-    - content.action.edit
 
 extra_css:
   - stylesheets/extra.css
