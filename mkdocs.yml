@@ -2,7 +2,7 @@ site_name: Active Directory
 site_description: >-
   Cours intégral sur Active Directory Domain Services : de l'installation à la
   sécurité offensive, sur un unique lab corp.lab.local.
-site_url: https://andrihan.github.io/Active-Directory/
+site_url: https://cours.andriharisoa.xyz/
 docs_dir: docs
 
 theme:
