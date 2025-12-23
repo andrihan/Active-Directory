@@ -30,7 +30,7 @@ Le cours se lit aussi sous forme de **site** (navigation, recherche, suivi de pr
 
 Le cours est aussi publié comme site de documentation (MkDocs Material) : navigation par module, recherche full-text, thème clair/sombre, et **suivi de progression** (cases à cocher par module et par section, sauvegardées dans le navigateur).
 
-- **En ligne** : une fois GitHub Pages activé sur ce dépôt (Settings → Pages → Source : GitHub Actions), le site est publié automatiquement à chaque push sur `main`, à l'adresse `https://andrihan.github.io/Active-Directory/`.
+- **En ligne** : le site est publié automatiquement à chaque push sur `main`, à l'adresse `https://cours.andriharisoa.xyz/`.
 - **En local** :
   ```bash
   python3 -m venv .venv
