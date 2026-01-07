@@ -88,7 +88,7 @@
       var box = buildCheckbox(key, "");
       box.classList.add("ad-progress-section");
       box.title = "Marquer cette section comme lue";
-      heading.insertAdjacentElement("beforebegin", box);
+      heading.insertBefore(box, heading.firstChild);
     });
   }
 
