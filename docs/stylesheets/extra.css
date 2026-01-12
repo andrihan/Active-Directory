@@ -75,3 +75,92 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* --- Titres et sous-titres colorés --- */
+
+/* Bannière de titre en tête de chaque page : h1 + h2 + h3 */
+.md-typeset h1:first-of-type {
+  margin: 0 0 0.15em;
+  padding: 0;
+  border: none;
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(120deg, var(--md-primary-fg-color), var(--md-accent-fg-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Le sous-titre (h2) suit soit directement le h1, soit la case
+   "module terminé" que progress.js insère juste après le h1. */
+.md-typeset h1:first-of-type + h2,
+.md-typeset h1:first-of-type + .ad-progress-module--page + h2 {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--md-accent-fg-color);
+}
+
+.md-typeset h1:first-of-type + h2 + h3,
+.md-typeset h1:first-of-type + .ad-progress-module--page + h2 + h3 {
+  margin-top: 0.1em;
+  padding: 0;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset h1:first-of-type + h2 + h3 + hr,
+.md-typeset h1:first-of-type + .ad-progress-module--page + h2 + h3 + hr {
+  margin-top: 1.2em;
+}
+
+/* Titres de module ("# Module N - ...") : tous les h1 après le premier */
+.md-typeset h1:not(:first-of-type) {
+  margin: 2.2em 0 1em;
+  padding: 0.5em 0.9em;
+  border-left: 0.3rem solid var(--md-primary-fg-color);
+  border-radius: 0.2rem;
+  background: var(--md-code-bg-color);
+  font-size: 1.4rem;
+}
+
+/* Sous-titres de section ("## N.N ...") */
+.md-typeset h2 {
+  margin-top: 1.8em;
+  padding-bottom: 0.25em;
+  border-bottom: 0.12rem solid var(--md-primary-fg-color);
+  color: var(--md-primary-fg-color);
+}
+
+/* Encadrés (notes, avertissements, prérequis) */
+.md-typeset blockquote {
+  border-left: 0.25rem solid var(--md-accent-fg-color);
+  border-radius: 0 0.3rem 0.3rem 0;
+  background: var(--md-code-bg-color);
+  padding: 0.7em 1.1em;
+  color: var(--md-default-fg-color);
+}
+
+/* Séparateurs entre modules */
+.md-typeset hr {
+  height: 0.15rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--md-primary-fg-color), transparent);
+  margin: 2.2em 0;
+}
+
+/* En-tête de tableau */
+.md-typeset table:not([class]) thead {
+  background: var(--md-primary-fg-color);
+}
+
+.md-typeset table:not([class]) th {
+  color: var(--md-primary-bg-color);
+}
