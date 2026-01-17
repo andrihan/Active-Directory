@@ -24,22 +24,19 @@
 
 ## Topologie étendue du lab (attention aux ressources)
 
-```
-                    Réseau interne : 192.168.10.0/24
-                    Réseau cluster/heartbeat : 10.10.10.0/24 (2e carte)
-
-┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-│ DC01 / DC02   │  │ HV01          │  │ HV02          │
-│ AD DS + DNS   │  │ Nœud cluster  │  │ Nœud cluster  │
-│ .10 / .11     │  │ Hyper-V + S2D │  │ Hyper-V + S2D │
-│               │  │ .71           │  │ .72           │
-└───────────────┘  └───────────────┘  └───────────────┘
-                   ┌───────────────┐  ┌───────────────┐
-                   │ HV03 (option) │  │ ISCSI01       │
-                   │ 3e nœud S2D   │  │ Cible iSCSI   │
-                   │ .73           │  │ (stockage     │
-                   │               │  │  partagé) .80 │
-                   └───────────────┘  └───────────────┘
+```mermaid
+flowchart TB
+    subgraph RES["Réseau interne 192.168.10.0/24 · Cluster/heartbeat 10.10.10.0/24 (2e carte)"]
+        DC["DC01 / DC02<br/>AD DS + DNS<br/>.10 / .11"]
+        HV1["HV01<br/>Nœud cluster<br/>Hyper-V + S2D · .71"]
+        HV2["HV02<br/>Nœud cluster<br/>Hyper-V + S2D · .72"]
+        HV3["HV03 (option)<br/>3e nœud S2D · .73"]
+        ISCSI["ISCSI01<br/>Cible iSCSI<br/>(stockage partagé) .80"]
+    end
+    DC --- HV1
+    HV1 --- HV2
+    HV2 --- HV3
+    HV3 --- ISCSI
 ```
 
 > **Note d'ingénieur - contraintes de lab, à lire avant de commencer** :
