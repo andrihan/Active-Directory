@@ -24,7 +24,6 @@
 > Traite un bloc par session. L'ordre est délibéré : chaque module arme le suivant. Ne saute pas le Bloc A - sans la crypto et le modèle LSA, tout le reste reste magique.
 
 ---
----
 
 # BLOC A - LE SOCLE
 
@@ -164,7 +163,6 @@ Pour qu'un portable puisse ouvrir une session **sans DC joignable** (en déplace
 4. Où Credential Guard place-t-il les secrets, et pourquoi cela neutralise-t-il Mimikatz `sekurlsa::logonpasswords` ?
 
 ---
----
 
 # BLOC B - AUTHENTIFICATION
 
@@ -206,11 +204,20 @@ Pour joindre le service `SPN=cifs/SRV01`, le client renvoie son TGT + un **authe
 **Étape 3 - AP-REQ (présentation au service).**
 Le client présente le ticket de service + un nouvel authentificateur au service. Le service **déchiffre le ticket avec sa propre clé** (il n'appelle pas le DC !), lit l'identité et le PAC, valide l'authentificateur, et accorde l'accès. Optionnellement, authentification **mutuelle** : le service prouve son identité en retour.
 
-```
-Client ──(0) pré-auth (timestamp chiffré clé user)──▶ AS
-Client ──(1) AS-REQ ──▶ AS ──(1) AS-REP : {clé session}user + {TGT}krbtgt ──▶ Client
-Client ──(2) TGS-REQ : TGT + auth ──▶ TGS ──(2) TGS-REP : {clé svc}session + {ticket svc}service ──▶ Client
-Client ──(3) AP-REQ : ticket svc + auth ──▶ Service ──(3) [mutual auth] ──▶ Client
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant AS as AS (KDC)
+    participant TGS as TGS (KDC)
+    participant S as Service
+
+    C->>AS: (0) Pré-auth : timestamp chiffré avec la clé user
+    C->>AS: (1) AS-REQ
+    AS-->>C: (1) AS-REP : {clé session}user + {TGT}krbtgt
+    C->>TGS: (2) TGS-REQ : TGT + authentificateur
+    TGS-->>C: (2) TGS-REP : {clé svc}session + {ticket svc}service
+    C->>S: (3) AP-REQ : ticket svc + authentificateur
+    S-->>C: (3) [authentification mutuelle, optionnelle]
 ```
 
 ## 39.3 krbtgt : la clé de voûte (et la Golden Ticket)
@@ -339,7 +346,6 @@ Souvent amorcé par du **poisoning** (LLMNR/NBT-NS, module non traité mais rapp
 2. Distingue Net-NTLM hash et hash NT : lequel est relayable, lequel est pass-the-hash-able, pourquoi.
 3. Pour chaque défense (signature SMB, EPA, désactivation LLMNR), dis quelle étape de l'attaque elle casse.
 
----
 ---
 
 # BLOC C - AUTORISATION
@@ -915,7 +921,6 @@ Le chemin défensif *est* la carte offensive. Chaque étape a son abus :
 3. On te dit « le domaine est ma frontière de sécurité ». Réfute en une page en t'appuyant sur les modules 42, 47 et 51.
 4. Un client s'authentifie en NTLM au lieu de Kerberos pour accéder à un serveur. Déroule l'arbre de diagnostic complet en citant les modules (SSPI, SPN, DC Locator, horloge).
 
----
 ---
 
 ## Conclusion générale du parcours (Parties 1 à 5)
