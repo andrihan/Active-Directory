@@ -17,7 +17,6 @@
 - **Bloc C — Sécurité & cycle de vie** : 90 Segmentation & sécurité du management · 91 Cycle de vie matériel · 92 Flotte & réseau as code
 
 ---
----
 
 # BLOC A — LE PHYSIQUE
 
@@ -200,16 +199,26 @@ L'architecture historique en trois couches (**core → agrégation → accès**)
 
 ## 83.2 Le fabric leaf-spine
 
+```mermaid
+flowchart TB
+    subgraph SPINE["SPINE (dorsale)"]
+        S1["Spine1"]
+        S2["Spine2"]
+        S3["Spine3"]
+    end
+    subgraph LEAF["LEAF (= ToR, haut de rack)"]
+        L1["Leaf1"]
+        L2["Leaf2"]
+        L3["Leaf3"]
+    end
+    S1 --- L1 & L2 & L3
+    S2 --- L1 & L2 & L3
+    S3 --- L1 & L2 & L3
+    L1 --- Srv1["serveurs"]
+    L2 --- Srv2["serveurs"]
+    L3 --- Srv3["serveurs"]
 ```
-        ┌────────┐     ┌────────┐     ┌────────┐        ← SPINE (dorsale)
-        │ Spine1 │     │ Spine2 │     │ Spine3 │
-        └───┬────┘     └───┬────┘     └───┬────┘
-      ╱  │  ╲          ╱ │ ╲          ╱ │ ╲     (chaque leaf relié à CHAQUE spine)
-   ┌──┴─┐ ┌─┴──┐   ┌──┴─┐ ┌─┴──┐   ...
-   │Leaf│ │Leaf│   │Leaf│ │Leaf│                  ← LEAF (= ToR, haut de rack)
-   └─┬──┘ └─┬──┘   └────┘ └────┘
-     │serveurs      │serveurs
-```
+Chaque leaf est relié à **chaque** spine (jamais leaf-à-leaf, jamais spine-à-spine).
 
 Propriétés fondamentales :
 
@@ -260,7 +269,6 @@ Comment un serveur dual-homé (module 82) voit-il **deux ToR comme un seul** pou
 3. Décris le rôle du MLAG pour un serveur dual-homé faisant du LACP.
 4. En une phrase chacun : à quoi servent VLAN, VXLAN et EVPN, et pourquoi VXLAN dépasse la limite des VLAN.
 
----
 ---
 
 # BLOC B — LA FLOTTE AUTOMATISÉE
@@ -606,7 +614,6 @@ groups:
 3. Explique comment une alerte matérielle devient un ticket de remplacement **sans réveiller** l'astreinte.
 4. Cite 2 événements matériels qui sont aussi des **signaux de sécurité** à envoyer au SIEM.
 
----
 ---
 
 # BLOC C — SÉCURITÉ & CYCLE DE VIE
