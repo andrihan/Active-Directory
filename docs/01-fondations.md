@@ -124,22 +124,15 @@ Windows Server 2022 ne crée pas de nouveau niveau fonctionnel : le maximum rest
 
 Nous allons construire progressivement ce lab tout au long du cours :
 
-```
-                    Réseau interne : 192.168.10.0/24
-                    (réseau "Internal" ou "Host-Only" de l'hyperviseur)
-
-┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
-│ DC01                 │   │ DC02 (module 9)      │   │ SRV01 (membre)       │
-│ Windows Server 2022  │   │ Windows Server 2022  │   │ Windows Server 2022  │
-│ 192.168.10.10        │   │ 192.168.10.11        │   │ 192.168.10.20        │
-│ AD DS + DNS + GC     │   │ AD DS + DNS + GC     │   │ Fichiers, tests GPO  │
-└──────────────────────┘   └──────────────────────┘   └──────────────────────┘
-
-┌──────────────────────┐
-│ CLI01 (optionnel)    │
-│ Windows 11           │
-│ 192.168.10.50        │
-└──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph RES["Réseau interne 192.168.10.0/24 (Internal / Host-Only de l'hyperviseur)"]
+        DC01["DC01<br/>Windows Server 2022<br/>192.168.10.10<br/>AD DS + DNS + GC"]
+        DC02["DC02 (module 9)<br/>Windows Server 2022<br/>192.168.10.11<br/>AD DS + DNS + GC"]
+        SRV01["SRV01 (membre)<br/>Windows Server 2022<br/>192.168.10.20<br/>Fichiers, tests GPO"]
+        CLI01["CLI01 (optionnel)<br/>Windows 11<br/>192.168.10.50"]
+    end
+    DC01 --- DC02 --- SRV01 --- CLI01
 ```
 
 **Ressources minimales par VM** : 2 vCPU, 4 Go RAM (2 Go possible pour un DC de lab), 60 Go de disque (dynamique). Hyperviseur au choix : Hyper-V, VMware Workstation, VirtualBox, Proxmox.
@@ -441,11 +434,11 @@ Import-Csv .\utilisateurs.csv | ForEach-Object {
 
 **Stratégie AGDLP** - *Accounts → Global groups → Domain Local groups → Permissions* :
 
-```
-Utilisateur jdupont
-   └── membre de G_IT (global : "les gens de l'IT")
-          └── membre de DL_Partage_IT_RW (domain local : "accès RW au partage IT")
-                 └── ACL NTFS : Modify sur \\SRV01\IT
+```mermaid
+flowchart LR
+    U["Utilisateur jdupont"] --> G["G_IT<br/>(global : les gens de l'IT)"]
+    G --> DL["DL_Partage_IT_RW<br/>(domain local : accès RW au partage IT)"]
+    DL --> ACL["ACL NTFS : Modify sur \\SRV01\IT"]
 ```
 
 ```powershell
