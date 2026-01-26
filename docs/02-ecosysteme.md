@@ -24,22 +24,19 @@
 
 ## Topologie étendue du lab
 
-```
-                    Réseau interne : 192.168.10.0/24
-
-┌───────────────┐ ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-│ DC01 / DC02   │ │ ROOTCA        │ │ SUBCA         │ │ SRV01         │
-│ AD DS + DNS   │ │ CA racine     │ │ CA émettrice  │ │ Fichiers/DFS  │
-│ .10 / .11     │ │ HORS DOMAINE  │ │ Enterprise    │ │ FSRM          │
-│               │ │ ÉTEINTE       │ │ .31           │ │ .20           │
-│               │ │ (offline)     │ │               │ │               │
-└───────────────┘ └───────────────┘ └───────────────┘ └───────────────┘
-
-┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-│ ADFS01        │ │ NPS01         │ │ WSUS01        │
-│ Fédération    │ │ RADIUS/802.1X │ │ MàJ           │
-│ .40           │ │ .50           │ │ .60           │
-└───────────────┘ └───────────────┘ └───────────────┘
+```mermaid
+flowchart TB
+    subgraph RES["Réseau interne 192.168.10.0/24"]
+        DC["DC01 / DC02<br/>AD DS + DNS · .10 / .11"]
+        ROOTCA["ROOTCA<br/>CA racine · HORS DOMAINE<br/>ÉTEINTE (offline)"]
+        SUBCA["SUBCA<br/>CA émettrice Enterprise · .31"]
+        SRV01["SRV01<br/>Fichiers/DFS + FSRM · .20"]
+        ADFS["ADFS01<br/>Fédération · .40"]
+        NPS["NPS01<br/>RADIUS/802.1X · .50"]
+        WSUS["WSUS01<br/>MàJ · .60"]
+    end
+    DC --- ROOTCA --- SUBCA --- SRV01
+    ADFS --- NPS --- WSUS
 ```
 
 > **Note d'ingénieur** : sur un vrai lab, tu n'as pas besoin d'allumer les 7 VM en même temps. Fais des snapshots, allume par module. La CA racine (`ROOTCA`) reste **éteinte 99 % du temps** - c'est exactement ce qu'on fait en production (offline root CA).
@@ -79,19 +76,11 @@ C'est aussi une des **surfaces d'attaque les plus critiques et les plus mal comp
 
 En production, **ne jamais** faire une CA unique. Le standard est le **two-tier PKI** :
 
-```
-        ┌────────────────────────────┐
-        │  Root CA (ROOTCA)          │  ← Standalone, HORS DOMAINE, ÉTEINTE
-        │  Offline. S'allume 1x/an   │     pour signer la CRL et renouveler
-        │  pour signer la sub CA     │
-        └────────────┬───────────────┘
-                     │ signe
-                     ▼
-        ┌────────────────────────────┐
-        │  Issuing / Subordinate CA  │  ← Enterprise, intégrée AD, EN LIGNE
-        │  (SUBCA)                   │     émet TOUS les certificats du quotidien
-        │  Émet les certifs clients  │
-        └────────────────────────────┘
+```mermaid
+flowchart TB
+    ROOT["Root CA (ROOTCA)<br/>Standalone, HORS DOMAINE, ÉTEINTE<br/>Offline. S'allume 1x/an pour signer<br/>la sub CA / renouveler la CRL"]
+    SUB["Issuing / Subordinate CA (SUBCA)<br/>Enterprise, intégrée AD, EN LIGNE<br/>Émet TOUS les certificats du quotidien"]
+    ROOT -->|signe| SUB
 ```
 
 Pourquoi ? Si la CA émettrice est compromise, on la révoque et on en remonte une nouvelle **sans** invalider toute la chaîne de confiance. La racine, hors ligne, reste protégée. La clé privée de la racine est le secret le plus précieux de ton infra.
