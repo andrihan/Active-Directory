@@ -329,8 +329,11 @@ Le mot de passe ne transite jamais ; le hash NT non plus **directement** - mais 
 ## 41.4 Le péché originel : le relais NTLM
 
 NTLM **ne lie pas** l'authentification au canal ni au serveur cible (pas de preuve mutuelle du *destinataire*). Donc un attaquant en position d'intercepteur peut **relayer** : capter le challenge/réponse d'une victime et le **rejouer vers un autre serveur** pour s'authentifier *en tant que la victime*.
-```
-Victime ──auth NTLM──▶ [Attaquant relais] ──même auth──▶ Serveur cible ──▶ accès en tant que victime
+```mermaid
+flowchart LR
+    V["Victime"] -->|auth NTLM| A["Attaquant relais"]
+    A -->|même auth rejouée| S["Serveur cible"]
+    S -->|accès accordé| R["...en tant que la victime"]
 ```
 Souvent amorcé par du **poisoning** (LLMNR/NBT-NS, module non traité mais rappelé Partie 1) qui force la victime à s'authentifier vers l'attaquant. C'est le moteur de nombreuses compromissions internes, dont **ESC8** (relais vers l'endpoint HTTP d'une CA, Partie 2).
 
@@ -580,18 +583,11 @@ Historiquement, supprimer un objet le transforme en **tombstone** (pierre tombal
 ## 46.3 Avec la corbeille AD : l'état « recycled »
 
 La **corbeille AD** (Recycle Bin, activée Partie 1) ajoute un état intermédiaire et **préserve les attributs** :
-```
-Objet vivant
-   │  suppression
-   ▼
-Objet SUPPRIMÉ  (isDeleted=TRUE, isRecycled=FALSE)   ← attributs PRÉSERVÉS
-   │  pendant "deleted object lifetime" (par défaut = tombstone lifetime, 180 j)
-   │  → restauration COMPLÈTE possible (liens/groupes conservés)
-   ▼
-Objet RECYCLÉ   (isDeleted=TRUE, isRecycled=TRUE)     ← attributs dépouillés
-   │  pendant "recycled object lifetime"
-   ▼
-Purge physique (garbage collection)
+```mermaid
+flowchart TD
+    A["Objet vivant"] -->|suppression| B["Objet SUPPRIMÉ<br/>(isDeleted=TRUE, isRecycled=FALSE)<br/>attributs PRÉSERVÉS"]
+    B -->|"deleted object lifetime (déf. = tombstone lifetime, 180 j)<br/>→ restauration COMPLÈTE possible"| C["Objet RECYCLÉ<br/>(isDeleted=TRUE, isRecycled=TRUE)<br/>attributs dépouillés"]
+    C -->|recycled object lifetime| D["Purge physique (garbage collection)"]
 ```
 La différence décisive : **tant que l'objet est en état « supprimé » (pas encore « recyclé »), la restauration est intégrale** - y compris les appartenances de groupe, car les **liens sont préservés**. C'est pourquoi la corbeille AD est tellement supérieure à la restauration autoritaire (Partie 3) pour une suppression accidentelle.
 
@@ -944,42 +940,33 @@ La Partie 5 est le liant : elle transforme une compétence opérationnelle (« j
 
 ## Annexe - Carte mentale des connexions (théorie ↔ pratique ↔ attaque)
 
-```
-CRYPTO (37) ─────────┬──▶ hash NT sans sel ───────▶ pass-the-hash
-                     ├──▶ clé AES salée/PBKDF2 ────▶ résiste au roasting
-                     └──▶ signer ≠ chiffrer ───────▶ PAC signé
-
-LSA/SSPI (38) ───────┬──▶ Negotiate Kerb/NTLM ─────▶ repli NTLM diagnostiqué
-                     ├──▶ LogonType 2/10 vs 3 ─────▶ TIERING (P4)
-                     └──▶ secrets en LSASS ────────▶ Credential Guard (P4)
-
-KERBEROS (39) ───────┬──▶ krbtgt chiffre le TGT ───▶ Golden Ticket
-                     ├──▶ ticket svc = clé service ▶ Silver / Kerberoasting
-                     ├──▶ PAC = groupes ───────────▶ base de l'autorisation
-                     └──▶ FAST/etypes/sel ─────────▶ AES-only (P1/P2)
-
-DÉLÉGATION (40) ─────┬──▶ non contrainte ──────────▶ vol de TGT (DC)
-                     └──▶ RBCD / S4U ──────────────▶ double-hop propre (P4)
-
-NTLM (41) ───────────┴──▶ pas de liaison canal ────▶ relais / ESC8 (P2)
-
-SID/JETON/ACL (42) ──┬──▶ sidHistory ──────────────▶ injection de SID
-                     ├──▶ jeton = groupes @logon ──▶ relog après changement
-                     └──▶ WriteDACL/GenericAll ────▶ chemins BloodHound
-
-CLAIMS/DAC (43) ─────┴──▶ identité composée ────────▶ dépend de FAST (39)
-
-LDAP/SCHÉMA (44) ────┬──▶ objet = attributs typés ─▶ requêtes efficaces (P1)
-NTDS/ESE (45) ───────┼──▶ Data/Link/SD tables ─────▶ ce que DCSync exfiltre
-CYCLE DE VIE (46) ───┼──▶ supprimé vs recyclé ─────▶ corbeille AD (P1)
-RÉPLICATION (47) ────┴──▶ USN/UTDV/InvocationID ───▶ DCSync ; anti-rollback
-
-DC LOCATOR (48) ─────┬──▶ SRV + CLDAP + site ──────▶ subnet déclaré (P1)
-GPO INTERNALS (49) ──┼──▶ CSE + versioning ────────▶ santé réplication SYSVOL
-PKI/PKINIT (50) ─────┼──▶ mapping faible/fort ─────▶ Shadow Credentials, ESC1
-TRUSTS (51) ─────────┴──▶ SID filtering ───────────▶ forêt = limite de sécu
-
-SYNTHÈSE (52) ───────────▶ Ctrl+Alt+Del → accès fichier = tous les modules
-```
+| Module | Mécanisme | Conséquence / attaque-défense |
+|---|---|---|
+| **CRYPTO (37)** | hash NT sans sel | pass-the-hash |
+| | clé AES salée/PBKDF2 | résiste au roasting |
+| | signer ≠ chiffrer | PAC signé |
+| **LSA/SSPI (38)** | Negotiate Kerb/NTLM | repli NTLM diagnostiqué |
+| | LogonType 2/10 vs 3 | TIERING (P4) |
+| | secrets en LSASS | Credential Guard (P4) |
+| **KERBEROS (39)** | krbtgt chiffre le TGT | Golden Ticket |
+| | ticket svc = clé service | Silver / Kerberoasting |
+| | PAC = groupes | base de l'autorisation |
+| | FAST/etypes/sel | AES-only (P1/P2) |
+| **DÉLÉGATION (40)** | non contrainte | vol de TGT (DC) |
+| | RBCD / S4U | double-hop propre (P4) |
+| **NTLM (41)** | pas de liaison canal | relais / ESC8 (P2) |
+| **SID/JETON/ACL (42)** | sidHistory | injection de SID |
+| | jeton = groupes @logon | relog après changement |
+| | WriteDACL/GenericAll | chemins BloodHound |
+| **CLAIMS/DAC (43)** | identité composée | dépend de FAST (39) |
+| **LDAP/SCHÉMA (44)** | objet = attributs typés | requêtes efficaces (P1) |
+| **NTDS/ESE (45)** | Data/Link/SD tables | ce que DCSync exfiltre |
+| **CYCLE DE VIE (46)** | supprimé vs recyclé | corbeille AD (P1) |
+| **RÉPLICATION (47)** | USN/UTDV/InvocationID | DCSync ; anti-rollback |
+| **DC LOCATOR (48)** | SRV + CLDAP + site | subnet déclaré (P1) |
+| **GPO INTERNALS (49)** | CSE + versioning | santé réplication SYSVOL |
+| **PKI/PKINIT (50)** | mapping faible/fort | Shadow Credentials, ESC1 |
+| **TRUSTS (51)** | SID filtering | forêt = limite de sécu |
+| **SYNTHÈSE (52)** | Ctrl+Alt+Del → accès fichier | = tous les modules |
 
 *Fin de la Partie 5 - et du parcours théorique. La ligne qui résume toute cette partie : on ne sécurise bien que ce qu'on comprend au niveau protocole. Un défenseur qui lit un protocole y voit ses abus avant l'attaquant ; celui qui ne connaît que les boutons attend d'être surpris. Tu es désormais du bon côté de cette ligne.*
