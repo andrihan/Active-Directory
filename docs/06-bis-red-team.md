@@ -120,11 +120,12 @@ Ce que la Partie 6 ne couvrait pas : **comment on pilote une opération à dista
 
 ## 64.2 Anatomie d'un C2
 
-```
-   Opérateur ──▶ TEAM SERVER (C2) ──▶ [Redirecteurs] ──▶ Implant sur la cible
-                     │                                         │
-                     └──── canal de commande chiffré ◀─────────┘
-                            (callback / beacon périodique)
+```mermaid
+flowchart LR
+    O["Opérateur"] --> TS["TEAM SERVER (C2)"]
+    TS --> R["Redirecteurs"]
+    R --> I["Implant sur la cible"]
+    I -.->|"canal de commande chiffré<br/>(callback / beacon périodique)"| TS
 ```
 
 - **L'implant (beacon/agent)** : le programme déposé sur la machine compromise. Il « rappelle » (callback) le C2 à intervalle réglable (**sleep/jitter**) pour recevoir des ordres et renvoyer des résultats. Le jitter (aléa sur l'intervalle) casse la régularité qui trahit une machine.
@@ -338,13 +339,13 @@ Le point que je veux te laisser, avec ma casquette d'ingénieur : **la maîtrise
 
 ## Annexe - Cycle d'opération ↔ discipline ↔ détection
 
-```
-PLAN (62)        objectif/ROE/assume breach ──────────── déconfliction, trusted agent
-ÉMULATION (63)   ATT&CK / CALDERA / Atomic ────────────── heatmap de couverture
-C2 (64)          beacon / redirecteurs / jitter ───────── analyse de beaconing, egress filtering
-OPSEC (65)       LOLBins / in-memory / anti-AMSI ───────── Sysmon, détection comportementale + aveuglement
-HUMAIN (66)      phishing / pretexting ─────────────────── DMARC, FIDO2, ASR macros, signalement
-LIVRABLE (67)    rapport + timeline attaque↔détection ──── MTTD/MTTR, règles testées, re-test
-```
+| Phase | Discipline / techniques | Détection / restitution |
+|---|---|---|
+| **PLAN (62)** | objectif/ROE/assume breach | déconfliction, trusted agent |
+| **ÉMULATION (63)** | ATT&CK / CALDERA / Atomic | heatmap de couverture |
+| **C2 (64)** | beacon / redirecteurs / jitter | analyse de beaconing, egress filtering |
+| **OPSEC (65)** | LOLBins / in-memory / anti-AMSI | Sysmon, détection comportementale + aveuglement |
+| **HUMAIN (66)** | phishing / pretexting | DMARC, FIDO2, ASR macros, signalement |
+| **LIVRABLE (67)** | rapport + timeline attaque↔détection | MTTD/MTTR, règles testées, re-test |
 
 *Fin de la Partie 6-bis. La ligne qui la résume : un Red Team ne se juge pas à ce qu'il compromet, mais à ce que la Blue Team en apprend. Le mandat d'abord, la furtivité ensuite, la restitution toujours - et l'OPSEC se comprend pour être détectée, pas pour être armée.*
