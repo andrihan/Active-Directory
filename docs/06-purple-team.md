@@ -45,11 +45,12 @@ Avant la moindre commande, un pentester professionnel a :
 
 On structure toute intrusion selon une **chaîne** - c'est le langage commun red/blue et la colonne vertébrale de cette partie :
 
-```
-Reconnaissance ──▶ Accès initial ──▶ Exécution ──▶ Persistance
-   ──▶ Escalade de privilèges ──▶ Contournement des défenses
-   ──▶ Accès aux identifiants ──▶ Découverte ──▶ Mouvement latéral
-   ──▶ Collecte ──▶ Domination du domaine ──▶ Exfiltration / Impact
+```mermaid
+flowchart LR
+    A["Reconnaissance"] --> B["Accès initial"] --> C["Exécution"] --> D["Persistance"]
+    D --> E["Escalade de privilèges"] --> F["Contournement des défenses"]
+    F --> G["Accès aux identifiants"] --> H["Découverte"] --> I["Mouvement latéral"]
+    I --> J["Collecte"] --> K["Domination du domaine"] --> L["Exfiltration / Impact"]
 ```
 
 MITRE **ATT&CK** formalise chaque étape en *tactiques* (le « pourquoi ») et *techniques* (le « comment », ex. `T1558.003` = Kerberoasting). L'intérêt pour toi : chaque technique ATT&CK a une page listant **détections et mitigations** - c'est exactement le pont purple. On y renverra.
@@ -108,8 +109,9 @@ ldapdomaindump -u 'CORP\jdupont' -p 'MotDePasse' ldap://192.168.10.10
 
 **BloodHound** est l'outil qui a changé le jeu : il collecte (via **SharpHound**) tous les objets et surtout **toutes les relations** (appartenances, sessions, ACL, délégations, admin locaux), puis calcule des **chemins d'attaque** dans un graphe. La requête emblématique : *« quel est le chemin le plus court entre un utilisateur lambda et Domain Admins ? »*.
 
-```
-SharpHound (collecte) ──▶ fichiers JSON ──▶ BloodHound (graphe) ──▶ "Shortest Path to Domain Admins"
+```mermaid
+flowchart LR
+    A["SharpHound (collecte)"] --> B["fichiers JSON"] --> C["BloodHound (graphe)"] --> D["Shortest Path to Domain Admins"]
 ```
 
 Ce que BloodHound révèle mappe **directement** la théorie de la Partie 5 :
@@ -395,14 +397,15 @@ C'est le pont explicite vers la **Trajectoire 3 (DevSecOps)**. Au lieu d'auditer
 
 ## 61.2 Pipeline d'audit AD
 
-```
-Commit / planifié ──▶ CI (GitLab self-hosted / GitHub Actions) ──▶
-   ├─ PingCastle en ligne de commande  → score de risque, seuil d'échec
-   ├─ SharpHound + requêtes BloodHound (cypher) → chemins vers DA = 0 ?
-   ├─ Certipy find → templates ADCS vulnérables = 0 ?
-   ├─ Purple Knight / ORADAD → indicateurs d'exposition
-   └─ Tests Pester → assertions de config (AES-only, LLMNR off, signature LDAP...)
-        ──▶ Rapport + échec du build si régression de posture
+```mermaid
+flowchart LR
+    A["Commit / planifié"] --> CI["CI (GitLab self-hosted / GitHub Actions)"]
+    CI --> P1["PingCastle en ligne de commande<br/>→ score de risque, seuil d'échec"]
+    CI --> P2["SharpHound + requêtes BloodHound (cypher)<br/>→ chemins vers DA = 0 ?"]
+    CI --> P3["Certipy find<br/>→ templates ADCS vulnérables = 0 ?"]
+    CI --> P4["Purple Knight / ORADAD<br/>→ indicateurs d'exposition"]
+    CI --> P5["Tests Pester<br/>→ assertions de config (AES-only, LLMNR off, signature LDAP...)"]
+    P1 & P2 & P3 & P4 & P5 --> R["Rapport + échec du build si régression de posture"]
 ```
 Principe : **un changement qui dégrade la posture (nouveau chemin vers DA, template ESC réintroduit, RC4 réactivé) casse le pipeline** - exactement comme un test unitaire raté. La sécurité devient mesurable et versionnée.
 
@@ -449,17 +452,17 @@ La Partie 6 est la démonstration de tout le reste : tu **attaques ce que tu as 
 
 ## Annexe - Cartographie kill chain ↔ théorie ↔ défense
 
-```
-RECON (54)      BloodHound/PingCastle ── LDAP (M44), ACL (M42) ── honeytokens, ACL réduites
-ACCÈS INIT (55) spraying/Responder ───── NTLM (M41), mdp (M37) ── LLMNR off, MFA, mdp forts
-ESCALADE (56)   Kerberoast/AS-REP ─────── Kerberos (M39) ───────── gMSA, AES-only, FAST
-                ACL abuse ─────────────── jetons/ACL (M42) ─────── moindre privilège
-                ADCS ESC / Shadow Cred ── PKINIT (M50) ─────────── templates fixés, mapping fort
-LATÉRAL (57)    PtH/PtT/relais ────────── LSA (M38), NTLM (M41) ── Credential Guard, LAPS, signatures
-DOMINATION (58) DCSync/Golden ─────────── réplication (M47), krbtgt (M39) ── restr. réplication, reset krbtgt
-PERSISTANCE (59) AdminSDHolder/GPO ────── ACL (M42), GPO (M49) ── audit ACL/GPO, versionnage
-BLUE (60)       SIEM/Sigma/honeytokens ── tous ─────────────────── détection industrialisée
-AUDIT CODE (61) PingCastle/BH/Certipy CI ─ tous ─────────────────── non-régression de sécurité
-```
+| Phase | Technique offensive | Théorie mobilisée | Défense |
+|---|---|---|---|
+| **RECON (54)** | BloodHound/PingCastle | LDAP (M44), ACL (M42) | honeytokens, ACL réduites |
+| **ACCÈS INIT (55)** | spraying/Responder | NTLM (M41), mdp (M37) | LLMNR off, MFA, mdp forts |
+| **ESCALADE (56)** | Kerberoast/AS-REP | Kerberos (M39) | gMSA, AES-only, FAST |
+| | ACL abuse | jetons/ACL (M42) | moindre privilège |
+| | ADCS ESC / Shadow Cred | PKINIT (M50) | templates fixés, mapping fort |
+| **LATÉRAL (57)** | PtH/PtT/relais | LSA (M38), NTLM (M41) | Credential Guard, LAPS, signatures |
+| **DOMINATION (58)** | DCSync/Golden | réplication (M47), krbtgt (M39) | restr. réplication, reset krbtgt |
+| **PERSISTANCE (59)** | AdminSDHolder/GPO | ACL (M42), GPO (M49) | audit ACL/GPO, versionnage |
+| **BLUE (60)** | SIEM/Sigma/honeytokens | tous | détection industrialisée |
+| **AUDIT CODE (61)** | PingCastle/BH/Certipy CI | tous | non-régression de sécurité |
 
 *Fin de la Partie 6 - et du parcours. La ligne qui la résume : on n'attaque un système que pour mieux le défendre, on ne le fait que sur ce qu'on a le droit de toucher, et la vraie compétence n'est pas de lancer l'exploit - c'est de le détecter et de le corriger avant l'adversaire. Le papier (le mandat) d'abord, le clavier ensuite. Toujours.*
