@@ -30,17 +30,13 @@ Tu ne tireras pas de câble d'alimentation de ta vie. Mais si tu ne comprends pa
 
 ## 81.2 La chaîne d'alimentation
 
-```
-Arrivée électrique (utility) ──▶ Transfert (ATS) ──▶ Groupe électrogène (secours)
-        │
-        ▼
-     UPS / onduleur (batterie : tient le temps que le groupe démarre)
-        │
-        ▼
-     PDU (Power Distribution Unit) dans le rack
-        │
-        ├── Alimentation A ──▶ Serveur (PSU 1)
-        └── Alimentation B ──▶ Serveur (PSU 2)   ◀── dual-feed
+```mermaid
+flowchart TD
+    U["Arrivée électrique (utility)"] --> ATS["Transfert (ATS)"] --> GEN["Groupe électrogène (secours)"]
+    GEN --> UPS["UPS / onduleur<br/>(batterie : tient le temps que le groupe démarre)"]
+    UPS --> PDU["PDU (Power Distribution Unit) dans le rack"]
+    PDU -->|Alimentation A| PSU1["Serveur (PSU 1)"]
+    PDU -->|Alimentation B| PSU2["Serveur (PSU 2)<br/>dual-feed"]
 ```
 
 Notions à maîtriser :
@@ -141,19 +137,13 @@ Un serveur DC typique n'a pas « une » carte réseau, mais **trois familles** :
 
 Chaque serveur se relie à un switch **Top-of-Rack (ToR)** placé en haut de son rack. Pour la résilience, **jamais un seul lien vers un seul switch** :
 
-```
-         ┌─────────── ToR-A ───────────┐        ┌─────────── ToR-B ───────────┐
-         │ (switch haut de rack, côté A)│        │ (switch haut de rack, côté B)│
-         └──────┬───────────────────────┘        └───────┬──────────────────────┘
-                │ NIC0 (25G)                              │ NIC1 (25G)
-                └──────────────┬──────────────────────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │  SERVEUR             │
-                    │  bond0 = NIC0 + NIC1 │  ◀── dual-homing, agrégation
-                    │  BMC ──▶ réseau OOB  │
-                    │  PSU-A│PSU-B (M81)   │
-                    └──────────────────────┘
+```mermaid
+flowchart TB
+    TORA["ToR-A<br/>(switch haut de rack, côté A)"]
+    TORB["ToR-B<br/>(switch haut de rack, côté B)"]
+    SRV["SERVEUR<br/>bond0 = NIC0 + NIC1 (dual-homing, agrégation)<br/>BMC → réseau OOB<br/>PSU-A / PSU-B (M81)"]
+    TORA -->|NIC0 25G| SRV
+    TORB -->|NIC1 25G| SRV
 ```
 
 Les deux NIC production vont vers **deux ToR distincts** → si un switch (ou un lien, ou un transceiver) tombe, l'autre prend le relais. C'est le pendant réseau du dual-feed électrique (M81) et du cluster (P3). Deux modes d'agrégation :
@@ -553,11 +543,14 @@ Le modèle cattle ne veut pas dire « ignorer le matériel » — il veut dire *
 
 ## 89.2 Les sources et le pipeline
 
-```
-BMC (Redfish/IPMI) ──┐
-Capteurs SMART       ├──▶ exporters ──▶ Prometheus ──▶ Grafana (dashboards) + Alertmanager
-SNMP (switches, PDU) ─┘                       │
-                                              └──▶ SIEM (P7) : corrélation sécu + matériel
+```mermaid
+flowchart LR
+    BMC["BMC (Redfish/IPMI)"] --> EXP["exporters"]
+    SMART["Capteurs SMART"] --> EXP
+    SNMP["SNMP (switches, PDU)"] --> EXP
+    EXP --> PROM["Prometheus"]
+    PROM --> GRAF["Grafana (dashboards) + Alertmanager"]
+    PROM --> SIEM["SIEM (P7) : corrélation sécu + matériel"]
 ```
 
 Exporters Prometheus dédiés au matériel :
@@ -687,11 +680,12 @@ VLAN/VRF 66  — DMZ
 
 Un serveur a un cycle de vie que l'ingénieur pilote — pas juste « on l'installe et on oublie » :
 
-```
-Planification capacité ──▶ Procurement ──▶ Réception/rack/câblage (M82)
-   ──▶ Provisioning (M86) ──▶ Exploitation (surveillé, M89)
-   ──▶ Panne composant ──▶ RMA / remplacement (cattle, M84)
-   ──▶ Fin de vie ──▶ Décommissionnement ──▶ EFFACEMENT SÉCURISÉ ──▶ Recyclage
+```mermaid
+flowchart LR
+    A["Planification capacité"] --> B["Procurement"] --> C["Réception/rack/câblage (M82)"]
+    C --> D["Provisioning (M86)"] --> E["Exploitation (surveillé, M89)"]
+    E --> F["Panne composant"] --> G["RMA / remplacement (cattle, M84)"]
+    G --> H["Fin de vie"] --> I["Décommissionnement"] --> J["EFFACEMENT SÉCURISÉ"] --> K["Recyclage"]
 ```
 
 ## 91.2 Planification de capacité
@@ -807,12 +801,13 @@ dev.close()
 
 ## 92.4 GitOps du data center & détection de dérive
 
-```
-NetBox (source de vérité)  ─────┐
-Dépôt Git (intentions/config)   ├──▶  CI/CD  ──▶  génère config switch + provisioning
-                                │        │         + pousse via Ansible/NAPALM/Redfish
-                                │        └──▶  DIFF : compare terrain vs intention
-                                └──────────────▶  drift détecté = alerte (et/ou correction)
+```mermaid
+flowchart LR
+    NB["NetBox (source de vérité)"] --> CICD["CI/CD"]
+    GIT["Dépôt Git (intentions/config)"] --> CICD
+    CICD --> GEN["génère config switch + provisioning<br/>+ pousse via Ansible/NAPALM/Redfish"]
+    CICD --> DIFF["DIFF : compare terrain vs intention"]
+    DIFF --> DRIFT["drift détecté = alerte (et/ou correction)"]
 ```
 - L'**intention** (VLAN, câblage, firmware cible, config port) vit dans Git + NetBox.
 - Le pipeline **applique** et surtout **vérifie** : `napalm compare_config`, inventaire firmware Redfish vs cible (M87), état NetBox vs réalité.
