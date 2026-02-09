@@ -167,19 +167,15 @@ msiexec /i \\corp.lab.local\Deploy\Wazuh\wazuh-agent.msi /q `
 
 Le vrai déploiement à l'échelle, ce n'est pas que les binaires - c'est la **config de télémétrie** poussée uniformément. Une GPO « socle de détection » (liée haut dans l'arbre) qui active partout :
 
-```
-GPO-C-Detection-Baseline (liée au domaine ou aux OU serveurs/postes) :
-├─ Event Forwarding : "Configure target Subscription Manager"
-│    Server=http://WEC01.corp.lab.local:5985/wsman/SubscriptionManager/WEC,Refresh=60
-├─ WinRM : activer le service (pour WEF)
-├─ Groupe "Event Log Readers" : ajouter "NETWORK SERVICE" (Restricted Groups)
-├─ Advanced Audit Policy Configuration (P1/P4) :
-│    Account Logon, Logon/Logoff, DS Access, Detailed Tracking (process creation),
-│    Sensitive Privilege Use, Object Access (selon SACL)
-├─ "Include command line in process creation events" = Enabled  (4688 enrichi)
-├─ PowerShell : Script Block Logging + Module Logging + Transcription (P4)
-└─ (rappel P4) ASR rules, Credential Guard, LAPS
-```
+**`GPO-C-Detection-Baseline`** (liée au domaine ou aux OU serveurs/postes) :
+
+- **Event Forwarding** : *"Configure target Subscription Manager"*<br/>`Server=http://WEC01.corp.lab.local:5985/wsman/SubscriptionManager/WEC,Refresh=60`
+- **WinRM** : activer le service (pour WEF)
+- **Groupe "Event Log Readers"** : ajouter `NETWORK SERVICE` (Restricted Groups)
+- **Advanced Audit Policy Configuration** (P1/P4) : Account Logon, Logon/Logoff, DS Access, Detailed Tracking (process creation), Sensitive Privilege Use, Object Access (selon SACL)
+- **"Include command line in process creation events"** = Enabled (4688 enrichi)
+- **PowerShell** : Script Block Logging + Module Logging + Transcription (P4)
+- (rappel P4) ASR rules, Credential Guard, LAPS
 
 > **Point clé** : la **Detection Baseline** est une GPO **unique et versionnée** qui garantit que *chaque* machine du parc émet la bonne télémétrie. Un nouveau serveur placé dans l'OU hérite automatiquement de tout le stack de détection. C'est ça, gouverner par AD.
 
