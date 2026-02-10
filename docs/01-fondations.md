@@ -5,21 +5,21 @@
 
 ## Table des matières
 
-1. **Module 1** - Introduction et concepts fondamentaux
-2. **Module 2** - Architecture logique et physique d'AD
-3. **Module 3** - Lab : préparation de l'environnement
-4. **Module 4** - Installation du premier contrôleur de domaine
-5. **Module 5** - DNS et Active Directory
-6. **Module 6** - Objets AD : utilisateurs, groupes, ordinateurs, OU
-7. **Module 7** - Stratégies de groupe (GPO)
-8. **Module 8** - Rôles FSMO et catalogue global
-9. **Module 9** - Réplication, sites et services
-10. **Module 10** - Approbations (trusts) et topologies multi-domaines
-11. **Module 11** - Administration avec PowerShell
-12. **Module 12** - Sécurité et durcissement (hardening)
-13. **Module 13** - Sauvegarde, restauration et maintenance
-14. **Module 14** - Dépannage (troubleshooting)
-15. **Module 15** - Projet final et scénarios d'examen
+1. **[Module 1](#module-1-introduction-et-concepts-fondamentaux)** - Introduction et concepts fondamentaux
+2. **[Module 2](#module-2-architecture-logique-et-physique)** - Architecture logique et physique d'AD
+3. **[Module 3](#module-3-lab-preparation-de-lenvironnement)** - Lab : préparation de l'environnement
+4. **[Module 4](#module-4-installation-du-premier-controleur-de-domaine)** - Installation du premier contrôleur de domaine
+5. **[Module 5](#module-5-dns-et-active-directory)** - DNS et Active Directory
+6. **[Module 6](#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou)** - Objets AD : utilisateurs, groupes, ordinateurs, OU
+7. **[Module 7](#module-7-strategies-de-groupe-gpo)** - Stratégies de groupe (GPO)
+8. **[Module 8](#module-8-roles-fsmo-et-catalogue-global)** - Rôles FSMO et catalogue global
+9. **[Module 9](#module-9-replication-sites-et-services)** - Réplication, sites et services
+10. **[Module 10](#module-10-approbations-trusts-et-multi-domaines)** - Approbations (trusts) et topologies multi-domaines
+11. **[Module 11](#module-11-administration-avec-powershell)** - Administration avec PowerShell
+12. **[Module 12](#module-12-securite-et-durcissement-hardening)** - Sécurité et durcissement (hardening)
+13. **[Module 13](#module-13-sauvegarde-restauration-et-maintenance)** - Sauvegarde, restauration et maintenance
+14. **[Module 14](#module-14-depannage-troubleshooting)** - Dépannage (troubleshooting)
+15. **[Module 15](#module-15-projet-final-et-scenarios-dexamen)** - Projet final et scénarios d'examen
 
 ---
 
@@ -252,7 +252,7 @@ Si `dcdiag` passe tous les tests et que les enregistrements SRV répondent, votr
 - Création de `C:\Windows\NTDS\ntds.dit` (base) et des journaux de transaction.
 - Création de `C:\Windows\SYSVOL` avec les partages `SYSVOL` et `NETLOGON`.
 - Enregistrement de dizaines d'enregistrements **SRV** dans la zone DNS `_msdcs.corp.lab.local`.
-- Le serveur détient les **5 rôles FSMO** (module 8) et devient GC.
+- Le serveur détient les **5 rôles FSMO** ([module 8](#module-8-roles-fsmo-et-catalogue-global)) et devient GC.
 - Le compte Administrateur local devient l'**Administrateur du domaine** (et de l'entreprise, car domaine racine de forêt).
 
 ## 4.5 Exercice pratique n°1
@@ -650,7 +650,7 @@ Set-ADObject -Identity (Get-ADDomainController "DC02").NTDSSettingsObjectDN -Rep
 
 ## 8.4 Exercice pratique n°5
 1. Identifiez les 5 rôles avec `netdom query fsmo`.
-2. (Après le module 9, quand DC02 existera) Transférez PDC Emulator vers DC02 puis revenez en arrière.
+2. (Après le [module 9](#module-9-replication-sites-et-services), quand DC02 existera) Transférez PDC Emulator vers DC02 puis revenez en arrière.
 3. Expliquez par écrit pourquoi le PDC Emulator est le rôle le plus critique au quotidien.
 
 ---
@@ -967,7 +967,7 @@ ntdsutil
   quit
 ```
 
-> Dans 95 % des cas de suppression accidentelle, la **corbeille AD** (module 6.7) est bien plus simple et rapide que la restauration autoritaire. Réservez `ntdsutil` aux cas où la corbeille n'était pas activée.
+> Dans 95 % des cas de suppression accidentelle, la **corbeille AD** ([module 6](#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou).7) est bien plus simple et rapide que la restauration autoritaire. Réservez `ntdsutil` aux cas où la corbeille n'était pas activée.
 
 ## 13.3 Maintenance de la base (defrag hors-ligne)
 
@@ -1090,7 +1090,7 @@ Checklist de livraison :
 - [ ] Tiering : comptes T0/T1 séparés, Protected Users, LAPS déployé.
 - [ ] Audit avancé activé, hiérarchie de temps correcte.
 - [ ] Sauvegarde System State planifiée + test de restauration documenté.
-- [ ] Script de santé quotidien (module 11.3) en tâche planifiée.
+- [ ] Script de santé quotidien ([module 11](#module-11-administration-avec-powershell).3) en tâche planifiée.
 
 ## 15.2 Questions type examen (auto-évaluation)
 
