@@ -6,19 +6,19 @@
 
 > **Prérequis** : ce cours suppose que tu as terminé la Partie 1. On réutilise et on étend le même lab (`corp.lab.local`, DC01/DC02, SRV01). On ajoute au fur et à mesure quelques serveurs membres dédiés pour respecter la **séparation des rôles** - un vrai réflexe d'ingénieur : on ne met pas une CA racine ou un ADFS sur un contrôleur de domaine.
 >
-> **Fil conducteur de cette partie** : tout se chaîne autour de l'**identité + la confiance cryptographique**. La PKI (module 16) émet les certificats que consommeront ADFS (module 17), LDAPS, l'EAP-TLS de NPS (module 19) et le durcissement TLS des serveurs de fichiers (module 18). C'est voulu : en production ces rôles ne vivent jamais isolés.
+> **Fil conducteur de cette partie** : tout se chaîne autour de l'**identité + la confiance cryptographique**. La PKI ([module 16](#module-16-ad-cs-la-pki-dentreprise)) émet les certificats que consommeront ADFS ([module 17](#module-17-ad-fs-federation-et-sso)), LDAPS, l'EAP-TLS de NPS ([module 19](#module-19-nps-radius-controle-dacces-reseau)) et le durcissement TLS des serveurs de fichiers ([module 18](#module-18-services-de-fichiers-avances)). C'est voulu : en production ces rôles ne vivent jamais isolés.
 
 ---
 
 ## Table des matières (Partie 2)
 
-- **Module 16** - AD CS : la PKI d'entreprise (le plus important)
-- **Module 17** - AD FS : fédération et SSO
-- **Module 18** - Services de fichiers avancés : DFS-N, DFS-R, FSRM, ABE
-- **Module 19** - NPS / RADIUS : 802.1X, VPN, Wi-Fi
-- **Module 20** - Gestion des mises à jour : WSUS (et ses alternatives modernes)
-- **Module 21** - Supervision, journalisation et exploitation
-- **Module 22** - Projet final Partie 2 + questions d'examen
+- **[Module 16](#module-16-ad-cs-la-pki-dentreprise)** - AD CS : la PKI d'entreprise (le plus important)
+- **[Module 17](#module-17-ad-fs-federation-et-sso)** - AD FS : fédération et SSO
+- **[Module 18](#module-18-services-de-fichiers-avances)** - Services de fichiers avancés : DFS-N, DFS-R, FSRM, ABE
+- **[Module 19](#module-19-nps-radius-controle-dacces-reseau)** - NPS / RADIUS : 802.1X, VPN, Wi-Fi
+- **[Module 20](#module-20-gestion-des-mises-a-jour-wsus)** - Gestion des mises à jour : WSUS (et ses alternatives modernes)
+- **[Module 21](#module-21-supervision-journalisation-et-exploitation)** - Supervision, journalisation et exploitation
+- **[Module 22](#module-22-projet-final-partie-2-examen)** - Projet final Partie 2 + questions d'examen
 
 ---
 
@@ -51,9 +51,9 @@ Une PKI (Public Key Infrastructure) émet, gère et révoque des **certificats n
 
 - **LDAPS** (LDAP over TLS, port 636) - dès que tu veux chiffrer les requêtes annuaire.
 - **RDP** - pour supprimer l'avertissement de certificat et empêcher le MITM.
-- **802.1X / EAP-TLS** - authentification réseau par certificat (module 19).
+- **802.1X / EAP-TLS** - authentification réseau par certificat ([module 19](#module-19-nps-radius-controle-dacces-reseau)).
 - **VPN, Wi-Fi entreprise, S/MIME, signature de code, SMB over QUIC, Always On VPN.**
-- **ADFS** (module 17) exige un certificat de service.
+- **ADFS** ([module 17](#module-17-ad-fs-federation-et-sso)) exige un certificat de service.
 - **Web interne** (HTTPS sur les intranets, consoles d'admin).
 
 C'est aussi une des **surfaces d'attaque les plus critiques et les plus mal comprises** d'AD (voir 16.8, les attaques ESC). Une CA mal configurée = compromission de tout le domaine. Un ingénieur qui maîtrise la PKI *et* son durcissement a une vraie valeur.
@@ -244,7 +244,7 @@ Restart-Service certsvc
 - Désactive Web Enrollment (ESC8) si tu ne l'utilises pas, ou force **EPA** (Extended Protection for Authentication) + HTTPS.
 - Restreins strictement *ManageCA/ManageCertificates* (ESC7).
 - Active l'audit CA : `certutil -setreg CA\AuditFilter 127` puis active la GPO *Audit Certification Services*.
-- **Mets les DC dans Protected Users** et sépare les tiers (rappel du module 12) : la PKI est un actif **Tier 0**.
+- **Mets les DC dans Protected Users** et sépare les tiers (rappel du [module 12](01-fondations.md#module-12-securite-et-durcissement-hardening)) : la PKI est un actif **Tier 0**.
 
 ## 16.9 Révocation et exploitation
 
@@ -300,10 +300,10 @@ Standards clés :
 
 ## 17.3 Prérequis - et pourquoi ADFS dépend du module 16
 
-ADFS **exige un certificat de service** (SSL). C'est là que la chaîne se boucle : tu émets ce certificat depuis **ta PKI du module 16**. Il te faut aussi :
+ADFS **exige un certificat de service** (SSL). C'est là que la chaîne se boucle : tu émets ce certificat depuis **ta PKI du [module 16](#module-16-ad-cs-la-pki-dentreprise)**. Il te faut aussi :
 
 - Un enregistrement DNS dédié : `fs.corp.lab.local` (le service ADFS a son propre nom, pas celui du serveur).
-- Un compte de service - idéalement un **gMSA** (rappel module 11.4).
+- Un compte de service - idéalement un **gMSA** (rappel [module 11](01-fondations.md#module-11-administration-avec-powershell).4).
 - Le certificat avec le SAN `fs.corp.lab.local` (+ `enterpriseregistration.corp.lab.local` pour le Device Registration).
 
 ```powershell
@@ -372,7 +372,7 @@ c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccou
 - ADFS est un actif **Tier 0** (il peut émettre des jetons pour n'importe qui) : mêmes règles de cloisonnement que les DC.
 
 ## 17.7 Exercice pratique n°11
-1. Émets le certif ADFS depuis ta PKI (module 16), crée le gMSA et l'enregistrement DNS.
+1. Émets le certif ADFS depuis ta PKI ([module 16](#module-16-ad-cs-la-pki-dentreprise)), crée le gMSA et l'enregistrement DNS.
 2. Installe la ferme ADFS, active la page de test IdP-initiated et connecte-toi.
 3. Configure une Relying Party Trust factice et écris une claim rule qui envoie email + groupes.
 4. Explique par écrit la différence entre SAML et OIDC, et pourquoi le token-signing cert est un point de défaillance critique.
@@ -383,7 +383,7 @@ c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccou
 
 ## 18.1 Objectif
 
-On étend le module 6 (AGDLP + partage simple) vers une architecture de fichiers **résiliente et gérée** : espace de noms unifié (DFS-N), réplication (DFS-R), quotas et filtrage (FSRM), et énumération basée sur l'accès (ABE).
+On étend le [module 6](01-fondations.md#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou) (AGDLP + partage simple) vers une architecture de fichiers **résiliente et gérée** : espace de noms unifié (DFS-N), réplication (DFS-R), quotas et filtrage (FSRM), et énumération basée sur l'accès (ABE).
 
 ## 18.2 DFS Namespaces (DFS-N) - l'espace de noms unifié
 
@@ -446,7 +446,7 @@ New-FsrmFileScreen -Path "D:\Compta" -IncludeGroup "Ransomware" -Active `
     -Notification (New-FsrmFileScreenNotificationAction -Type Event -EventType Warning)
 ```
 
-> Le file screening est un **garde-fou low-cost anti-ransomware** : détection précoce de la création massive de fichiers chiffrés. Ce n'est pas une protection complète, mais c'est un signal utile à router vers ton SIEM (module 21).
+> Le file screening est un **garde-fou low-cost anti-ransomware** : détection précoce de la création massive de fichiers chiffrés. Ce n'est pas une protection complète, mais c'est un signal utile à router vers ton SIEM ([module 21](#module-21-supervision-journalisation-et-exploitation)).
 
 ## 18.5 Access-Based Enumeration (ABE)
 
@@ -476,7 +476,7 @@ Network Policy Server est l'implémentation Microsoft de **RADIUS**. Il centrali
 - **VPN** : authentifier les connexions VPN via AD.
 - **Comptabilité (accounting)** : journaliser qui se connecte, où, quand.
 
-Chaîne de confiance encore une fois liée au module 16 : la méthode la plus robuste, **EAP-TLS**, exige un **certificat côté client ET côté serveur**, tous deux émis par ta PKI.
+Chaîne de confiance encore une fois liée au [module 16](#module-16-ad-cs-la-pki-dentreprise) : la méthode la plus robuste, **EAP-TLS**, exige un **certificat côté client ET côté serveur**, tous deux émis par ta PKI.
 
 ## 19.2 Installation et enregistrement dans AD
 
@@ -515,12 +515,12 @@ Puis dans `nps.msc` :
 2. Le point d'accès pointe son RADIUS vers `192.168.10.50` avec le secret partagé.
 3. GPO Wi-Fi (Computer → Policies → Windows Settings → Wireless Network Policies) pour pousser le profil aux clients.
 
-> **EAP-TLS > PEAP-MSCHAPv2.** PEAP-MSCHAPv2 repose sur le mot de passe (vulnérable au vol d'identifiants / relais). En production sérieuse, vise **EAP-TLS** (certificat client par auto-enrollment du module 16) : pas de mot de passe sur le fil, authentification mutuelle.
+> **EAP-TLS > PEAP-MSCHAPv2.** PEAP-MSCHAPv2 repose sur le mot de passe (vulnérable au vol d'identifiants / relais). En production sérieuse, vise **EAP-TLS** (certificat client par auto-enrollment du [module 16](#module-16-ad-cs-la-pki-dentreprise)) : pas de mot de passe sur le fil, authentification mutuelle.
 
 ## 19.5 Exercice pratique n°13
 1. Installe NPS01, enregistre-le dans AD.
 2. Configure une Network Policy 802.1X limitée au groupe `G_WiFi_Autorises`.
-3. **Niveau expert** : bascule la policy en **EAP-TLS**, en t'appuyant sur les certifs machine auto-enrollés du module 16. Explique pourquoi c'est plus sûr que PEAP.
+3. **Niveau expert** : bascule la policy en **EAP-TLS**, en t'appuyant sur les certifs machine auto-enrollés du [module 16](#module-16-ad-cs-la-pki-dentreprise). Explique pourquoi c'est plus sûr que PEAP.
 4. Active l'accounting RADIUS vers un fichier et repère une tentative d'authentification.
 
 ---
@@ -593,15 +593,15 @@ wecutil qc /q
 #   4625, 4740, 4728/4732/4756, 4768/4769, 4662, 1102, 4720, 4726...
 ```
 
-En entreprise, on branche ensuite ce flux (ou directement les DC) vers un **SIEM** : Microsoft Sentinel, Splunk, Elastic (ELK), Wazuh. Les file screens ransomware du module 18 et les events PKI du module 16 y remontent aussi.
+En entreprise, on branche ensuite ce flux (ou directement les DC) vers un **SIEM** : Microsoft Sentinel, Splunk, Elastic (ELK), Wazuh. Les file screens ransomware du [module 18](#module-18-services-de-fichiers-avances) et les events PKI du [module 16](#module-16-ad-cs-la-pki-dentreprise) y remontent aussi.
 
 ## 21.3 Métriques de santé à surveiller en continu
 
-- **Réplication AD** : `repadmin /replsummary` = 0 échec (rappel module 9).
-- **DFS-R backlog** : proche de 0 (module 18).
-- **Expiration des certificats** : ADFS token-signing, certifs serveurs, CA (module 16).
+- **Réplication AD** : `repadmin /replsummary` = 0 échec (rappel [module 9](01-fondations.md#module-9-replication-sites-et-services)).
+- **DFS-R backlog** : proche de 0 ([module 18](#module-18-services-de-fichiers-avances)).
+- **Expiration des certificats** : ADFS token-signing, certifs serveurs, CA ([module 16](#module-16-ad-cs-la-pki-dentreprise)).
 - **Espace disque** des DC (surtout SYSVOL, NTDS, journaux).
-- **Décalage temps** : `w32tm /monitor` (module 14).
+- **Décalage temps** : `w32tm /monitor` ([module 14](01-fondations.md#module-14-depannage-troubleshooting)).
 - **Services critiques** : NTDS, DNS, KDC, Netlogon, DFSR, ADFS, CertSvc.
 
 ```powershell
@@ -613,7 +613,7 @@ Get-ChildItem Cert:\LocalMachine\My | Where-Object {
 
 ## 21.4 Automatisation de l'exploitation
 
-Reprends le script de santé du module 11.3 et transforme-le en **tâche planifiée quotidienne** qui envoie un rapport (mail ou webhook). C'est le premier pas vers la trajectoire 3 (Infra as Code / observabilité). L'idée directrice : **si tu le fais deux fois à la main, tu le scriptes.**
+Reprends le script de santé du [module 11](01-fondations.md#module-11-administration-avec-powershell).3 et transforme-le en **tâche planifiée quotidienne** qui envoie un rapport (mail ou webhook). C'est le premier pas vers la trajectoire 3 (Infra as Code / observabilité). L'idée directrice : **si tu le fais deux fois à la main, tu le scriptes.**
 
 ## 21.5 Exercice pratique n°15
 1. Configure WEF : un collecteur + une souscription qui ramène les events 4625/4740/4768 des DC.
@@ -648,14 +648,14 @@ Checklist de livraison :
 5. SAML vs OIDC : quand chaque ? Quel est le point de défaillance n°1 d'ADFS ?
 6. Pourquoi ne jamais mettre une base de données en DFS-R ? Quelle alternative ?
 7. EAP-TLS vs PEAP-MSCHAPv2 : lequel et pourquoi ?
-8. Comment le module 16 (PKI) alimente-t-il concrètement les modules 17, 18, 19 ? (donne 3 dépendances)
+8. Comment le [module 16](#module-16-ad-cs-la-pki-dentreprise) (PKI) alimente-t-il concrètement les modules [17](#module-17-ad-fs-federation-et-sso), [18](#module-18-services-de-fichiers-avances), [19](#module-19-nps-radius-controle-dacces-reseau) ? (donne 3 dépendances)
 9. WSUS est-il un choix d'avenir ? Que recommanderais-tu en 2026 et pourquoi ?
 10. Cite 6 métriques que tu surveilles en continu sur cette infra et l'outil natif pour chacune.
 
 ## 22.3 Ce qui vient après (ponts vers les trajectoires 2 et 3)
 
 - **Trajectoire 2 (hybride/cloud)** : Entra ID, Entra Connect (sync des identités de `corp.lab.local` vers le cloud), Conditional Access, PIM - c'est la suite la plus stratégique. Ton WSUS deviendra Intune/Autopatch, ton ADFS pourra céder la place à l'auth cloud.
-- **Trajectoire 3 (DevSecOps)** : reconstruire tout ce lab en **Terraform + PowerShell DSC/Ansible**, versionner les GPO et la config PKI dans Git, tester avec **Pester**, brancher les logs (modules 16/18/21) dans un SIEM, et auditer offensivement avec **BloodHound / PingCastle / Certipy**.
+- **Trajectoire 3 (DevSecOps)** : reconstruire tout ce lab en **Terraform + PowerShell DSC/Ansible**, versionner les GPO et la config PKI dans Git, tester avec **Pester**, brancher les logs ([modules 16](#module-16-ad-cs-la-pki-dentreprise)/18/21) dans un SIEM, et auditer offensivement avec **BloodHound / PingCastle / Certipy**.
 
 ---
 
