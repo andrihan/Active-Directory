@@ -12,13 +12,13 @@
 
 ## Table des matières (Partie 3)
 
-- **Module 23** - Concepts de résilience : SPOF, RTO/RPO, HA vs DR vs FT
-- **Module 24** - Failover Clustering (WSFC) : le socle de la HA
-- **Module 25** - Stockage résilient : Storage Spaces, S2D, Storage Replica
-- **Module 26** - Hyper-V en production : cluster, Live Migration, Replica, CAU
-- **Module 27** - File Server hautement disponible : SOFS vs General Use
-- **Module 28** - Services d'infra redondants : DHCP Failover, réseau
-- **Module 29** - Projet final Partie 3 + examen
+- **[Module 23](#module-23-concepts-de-resilience)** - Concepts de résilience : SPOF, RTO/RPO, HA vs DR vs FT
+- **[Module 24](#module-24-failover-clustering-wsfc)** - Failover Clustering (WSFC) : le socle de la HA
+- **[Module 25](#module-25-stockage-resilient)** - Stockage résilient : Storage Spaces, S2D, Storage Replica
+- **[Module 26](#module-26-hyper-v-en-production)** - Hyper-V en production : cluster, Live Migration, Replica, CAU
+- **[Module 27](#module-27-file-server-hautement-disponible)** - File Server hautement disponible : SOFS vs General Use
+- **[Module 28](#module-28-services-dinfra-redondants)** - Services d'infra redondants : DHCP Failover, réseau
+- **[Module 29](#module-29-projet-final-partie-3-examen)** - Projet final Partie 3 + examen
 
 ---
 
@@ -41,7 +41,7 @@ flowchart TB
 
 > **Note d'ingénieur - contraintes de lab, à lire avant de commencer** :
 >
-> - **Édition** : Storage Spaces Direct (module 25) exige **Windows Server Datacenter**. Standard ne l'a pas. Le clustering de base et Hyper-V fonctionnent en Standard.
+> - **Édition** : Storage Spaces Direct ([module 25](#module-25-stockage-resilient)) exige **Windows Server Datacenter**. Standard ne l'a pas. Le clustering de base et Hyper-V fonctionnent en Standard.
 > - **Virtualisation imbriquée (nested)** : pour clusteriser Hyper-V dans des VM, active la nested virtualization sur ton hyperviseur (`Set-VMProcessor -ExposeVirtualizationExtensions $true` sous Hyper-V hôte ; option équivalente sous VMware/Proxmox).
 > - **RAM** : compte 4-8 Go par nœud. Un lab HA à 2 nœuds + iSCSI + DC, c'est ~20 Go de RAM minimum. Fais tourner par module, snapshots à l'appui.
 > - **Stockage partagé** : pas de vraie baie SAN ? On simule avec une **cible iSCSI** (rôle gratuit de Windows Server) ou on part sur **S2D** (stockage local mutualisé, pas besoin de SAN). Je couvre les deux.
@@ -96,7 +96,7 @@ Chaque module de cette partie répond à une case de ce tableau. Garde-le sous l
 ## 23.5 Exercice pratique n°16
 1. Liste tous les SPOF de ton lab actuel (Parties 1 et 2). Indice : combien de serveurs DHCP ? Combien de nœuds portent la PKI ? Où vit SYSVOL ?
 2. Pour trois services (AD, partage de fichiers, PKI), écris le RPO et le RTO que tu jugerais raisonnables, et la techno qui y répond.
-3. Rédige en 5 lignes pourquoi ta réplication DFS-R du module 18 n'est **pas** une sauvegarde.
+3. Rédige en 5 lignes pourquoi ta réplication DFS-R du [module 18](02-ecosysteme.md#module-18-services-de-fichiers-avances) n'est **pas** une sauvegarde.
 
 ---
 
@@ -248,7 +248,7 @@ Get-IscsiTarget | Connect-IscsiTarget -IsPersistent $true
 Get-Disk | Where-Object BusType -eq "iSCSI"
 ```
 
-Ces disques deviennent des **Cluster Shared Volumes (CSV)** au module 26.
+Ces disques deviennent des **Cluster Shared Volumes (CSV)** au [module 26](#module-26-hyper-v-en-production).
 
 ## 25.3 Storage Spaces Direct (S2D) - l'hyperconvergence
 
@@ -408,7 +408,7 @@ Invoke-CauRun -ClusterName CL-CORP -Force
 Get-CauReport -ClusterName CL-CORP -Last
 ```
 
-> C'est l'aboutissement de la HA : combiné à CAU, ton WSUS du module 20 patche l'infra **sans jamais l'arrêter**. Voilà à quoi ressemble une exploitation « sans interruption ».
+> C'est l'aboutissement de la HA : combiné à CAU, ton WSUS du [module 20](02-ecosysteme.md#module-20-gestion-des-mises-a-jour-wsus) patche l'infra **sans jamais l'arrêter**. Voilà à quoi ressemble une exploitation « sans interruption ».
 
 ## 26.6 Exercice pratique n°19
 1. Transforme un disque partagé en CSV, crée `VM-APP01` dessus et rends-la hautement disponible.
@@ -447,7 +447,7 @@ New-SmbShare -Name "Partages" -Path "G:\Partages" -ContinuouslyAvailable $true `
     -FullAccess "CORP\Domain Admins" -ChangeAccess "CORP\G_Utilisateurs"
 ```
 
-Ce partage `\\FS-CORP\Partages` reste accessible même si le nœud qui le sert redémarre : **SMB Transparent Failover** rejoue les handles sur le nœud survivant. Tu peux y remettre ton DFS-N/FSRM du module 18, mais désormais **hautement disponible**.
+Ce partage `\\FS-CORP\Partages` reste accessible même si le nœud qui le sert redémarre : **SMB Transparent Failover** rejoue les handles sur le nœud survivant. Tu peux y remettre ton DFS-N/FSRM du [module 18](02-ecosysteme.md#module-18-services-de-fichiers-avances), mais désormais **hautement disponible**.
 
 ## 27.3 Scale-Out File Server (pour Hyper-V/SQL)
 
@@ -516,7 +516,7 @@ Get-DhcpServerv4Failover   # vérifier l'état de synchronisation
 | VM | Cluster Hyper-V + CSV | ~0 | temps de boot |
 | DR VM (autre site) | Hyper-V Replica | 30 s–15 min | minutes |
 | DR volume | Storage Replica async | secondes | minutes |
-| Retour dans le temps | Sauvegarde (module 13) | heures | heures |
+| Retour dans le temps | Sauvegarde ([module 13](01-fondations.md#module-13-sauvegarde-restauration-et-maintenance)) | heures | heures |
 
 Un architecte lit ce tableau et voit immédiatement les trous. C'est exactement le livrable qu'on attend de toi.
 
@@ -541,10 +541,10 @@ Checklist de livraison :
 - [ ] Cluster **Hyper-V** : au moins une VM HA, Live Migration testée (0 perte), RTO de bascule mesuré.
 - [ ] **Hyper-V Replica** vers un hôte de DR, avec un basculement **de test** réussi.
 - [ ] **CAU** configuré : patch du cluster sans interruption.
-- [ ] File Server HA (**general use**) avec partage continûment disponible, DFS-N/FSRM du module 18 repositionnés dessus.
+- [ ] File Server HA (**general use**) avec partage continûment disponible, DFS-N/FSRM du [module 18](02-ecosysteme.md#module-18-services-de-fichiers-avances) repositionnés dessus.
 - [ ] **DHCP Failover** opérationnel.
 - [ ] Tableau RPO/RTO (28.2) rempli avec l'état réel + un **runbook de bascule** (qui fait quoi, dans quel ordre, en cas de panne).
-- [ ] Rappel transverse : HA ≠ backup. La sauvegarde du module 13 tourne toujours, idéalement **immuable/hors-ligne** (anti-ransomware).
+- [ ] Rappel transverse : HA ≠ backup. La sauvegarde du [module 13](01-fondations.md#module-13-sauvegarde-restauration-et-maintenance) tourne toujours, idéalement **immuable/hors-ligne** (anti-ransomware).
 
 ## 29.2 Questions type examen / entretien (niveau ingénieur)
 
