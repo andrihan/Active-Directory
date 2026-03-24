@@ -61,7 +61,7 @@ Trois observations qui déterminent une décennie d'attaques :
 
 1. **Aucun sel.** Deux utilisateurs avec le même mot de passe ont le même hash NT → tables précalculées (rainbow tables), et un hash volé sur une machine sert partout.
 2. **MD4, rapide.** Des milliards d'essais/seconde sur GPU → brute-force efficace des mots de passe faibles.
-3. **Le hash *est* le secret d'authentification en NTLM.** On n'a pas besoin du mot de passe en clair : présenter le hash suffit. **C'est ça, le pass-the-hash** (module 41), et c'est structurel, pas un bug.
+3. **Le hash *est* le secret d'authentification en NTLM.** On n'a pas besoin du mot de passe en clair : présenter le hash suffit. **C'est ça, le pass-the-hash** ([module 41](#module-41-ntlm)), et c'est structurel, pas un bug.
 
 ## 37.4 La dérivation de clé Kerberos : pourquoi AES résiste là où RC4 tombe
 
@@ -79,7 +79,7 @@ Clé AES Kerberos = PBKDF2( mot_de_passe, sel = REALM + nom_utilisateur, itérat
 - **Chiffrer** = garantir la **confidentialité** (personne ne lit).
 - **Signer** = garantir **authenticité + intégrité** (ça vient bien de X et n'a pas été altéré), *sans* cacher le contenu.
 
-Dans le PAC (module 39), le KDC **signe** tes appartenances de groupe : le service peut vérifier qu'elles n'ont pas été trafiquées. Comprendre cette distinction, c'est comprendre pourquoi un PAC forgé doit reproduire une signature valide - et donc pourquoi il faut la clé `krbtgt`.
+Dans le PAC ([module 39](#module-39-kerberos-de-bout-en-bout)), le KDC **signe** tes appartenances de groupe : le service peut vérifier qu'elles n'ont pas été trafiquées. Comprendre cette distinction, c'est comprendre pourquoi un PAC forgé doit reproduire une signature valide - et donc pourquoi il faut la clé `krbtgt`.
 
 ## 37.6 Exercice de compréhension n°28
 1. Explique en trois phrases pourquoi deux comptes au même mot de passe ont le même hash NT mais des clés Kerberos AES différentes.
@@ -99,7 +99,7 @@ On enseigne Kerberos comme s'il flottait dans le vide. Faux : **Kerberos n'est q
 La **LSA** (Local Security Authority) est le sous-système de sécurité de Windows. Elle s'exécute dans le processus **`lsass.exe`**. Ses rôles :
 
 - Authentifier les logons (locaux et réseau).
-- Générer et détenir les **jetons d'accès** (module 42).
+- Générer et détenir les **jetons d'accès** ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)).
 - **Mettre en cache en mémoire les secrets d'authentification** (hash NT, tickets Kerberos, clés de session) pour permettre le SSO - c'est-à-dire ne pas redemander le mot de passe à chaque accès réseau.
 
 Ce dernier point est capital : **LSASS garde des secrets réutilisables en mémoire.** Un attaquant qui obtient les privilèges pour lire cette mémoire (Mimikatz, `sekurlsa`) récupère hash et tickets → pass-the-hash / pass-the-ticket. **C'est la raison d'être de Credential Guard** (Partie 4) : isoler ces secrets dans un conteneur virtualisé hors de portée de LSASS.
@@ -186,7 +186,7 @@ Idée maîtresse : un ticket est un **laissez-passer chiffré avec la clé du de
 ## 39.2 Le déroulé complet, message par message
 
 **Étape 0 - Pré-authentification.**
-Le client chiffre un **horodatage** avec sa **clé longue durée** (dérivée du mot de passe, module 37) et l'envoie. Le KDC déchiffre : si l'heure est cohérente, c'est la preuve que le client connaît son secret, *sans* que le mot de passe transite.
+Le client chiffre un **horodatage** avec sa **clé longue durée** (dérivée du mot de passe, [module 37](#module-37-cryptographie-appliquee-a-lidentite)) et l'envoie. Le KDC déchiffre : si l'heure est cohérente, c'est la preuve que le client connaît son secret, *sans* que le mot de passe transite.
 > Si la pré-auth est **désactivée** sur un compte, le KDC renvoie directement du matériel chiffré avec la clé de l'utilisateur → **AS-REP roasting** (craquable hors-ligne). D'où : ne jamais désactiver la pré-auth.
 
 **Étape 1 - AS-REQ / AS-REP (obtenir le TGT).**
@@ -227,9 +227,9 @@ sequenceDiagram
 
 ## 39.4 Le PAC : le joyau caché
 
-Le **PAC** (Privileged Attribute Certificate) est une structure **à l'intérieur** du ticket qui transporte l'**autorisation** : les SID de l'utilisateur, ses **groupes**, ses privilèges, des infos de logon. Sans PAC, Kerberos prouverait *qui tu es* mais pas *à quels groupes tu appartiens* - or c'est l'appartenance aux groupes qui décide des accès (module 42).
+Le **PAC** (Privileged Attribute Certificate) est une structure **à l'intérieur** du ticket qui transporte l'**autorisation** : les SID de l'utilisateur, ses **groupes**, ses privilèges, des infos de logon. Sans PAC, Kerberos prouverait *qui tu es* mais pas *à quels groupes tu appartiens* - or c'est l'appartenance aux groupes qui décide des accès ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)).
 
-- Le PAC est **signé par le KDC** (rappel : signer ≠ chiffrer, module 37) pour empêcher un service de falsifier tes groupes.
+- Le PAC est **signé par le KDC** (rappel : signer ≠ chiffrer, [module 37](#module-37-cryptographie-appliquee-a-lidentite)) pour empêcher un service de falsifier tes groupes.
 - **Silver Ticket** : si un attaquant a la clé d'un **compte de service**, il forge un *ticket de service* (pas un TGT) avec un PAC bidon → accès à *ce* service uniquement, **sans jamais parler au DC** (donc très discret). Comprendre le PAC, c'est comprendre pourquoi Golden (TGT, tout le domaine) et Silver (ticket de service, un service) diffèrent.
 - La **validation du PAC** (le service redemande au KDC de vérifier la signature) et les correctifs récents de *PAC hardening* referment des failles historiques (ex. sAMAccountName spoofing).
 
@@ -243,13 +243,13 @@ Le **PAC** (Privileged Attribute Certificate) est une structure **à l'intérieu
 
 **Types de chiffrement (etypes)**, négociés entre client et KDC :
 
-- **AES256-CTS-HMAC-SHA1 (18)** et **AES128 (17)** : sains, clés **salées** (module 37).
+- **AES256-CTS-HMAC-SHA1 (18)** et **AES128 (17)** : sains, clés **salées** ([module 37](#module-37-cryptographie-appliquee-a-lidentite)).
 - **RC4-HMAC (23)** : utilise le hash NT **sans sel** → cassable hors-ligne → à **désactiver**.
 - **DES** : mort.
 
 **Salting** : la clé AES est salée avec `REALM+username` → deux comptes au même mot de passe ont des clés différentes. RC4 non → précalculable. **kvno** (Key Version Number) : versionne la clé d'un compte, pour que les tickets restent déchiffrables juste après un changement de mot de passe.
 
-**FAST / Kerberos Armoring** (« Flexible Authentication Secure Tunneling ») : la contre-mesure théorique à l'AS-REP roasting et au cassage de pré-auth. La machine utilise **son propre TGT** pour créer un **tunnel blindé** qui protège l'échange de pré-auth de l'utilisateur → l'attaquant ne peut plus capter de matériel craquable hors-ligne. FAST permet aussi l'**identité composée** (utilisateur + machine), socle du contrôle d'accès dynamique (module 43). Se déploie via GPO (« Kerberos client support for claims/armoring »).
+**FAST / Kerberos Armoring** (« Flexible Authentication Secure Tunneling ») : la contre-mesure théorique à l'AS-REP roasting et au cassage de pré-auth. La machine utilise **son propre TGT** pour créer un **tunnel blindé** qui protège l'échange de pré-auth de l'utilisateur → l'attaquant ne peut plus capter de matériel craquable hors-ligne. FAST permet aussi l'**identité composée** (utilisateur + machine), socle du contrôle d'accès dynamique ([module 43](#module-43-claims-dynamic-access-control-et-conditional-aces)). Se déploie via GPO (« Kerberos client support for claims/armoring »).
 
 ## 39.7 Panorama des attaques Kerberos (chacune = un concept maîtrisé)
 
@@ -372,7 +372,7 @@ S - 1 - 5 - 21-3623811015-3361044348-30300820 - 1013
 └ littéral "S"
 ```
 - Le **domaine** partage le même préfixe pour tous ses principaux.
-- Le **RID** (Relative Identifier) distingue chaque objet ; il est distribué par le **RID Master** (Partie 1). Les RID sont **monotones et non réutilisés** - d'où l'importance de ne pas dupliquer un DC (USN/RID rollback, module 47).
+- Le **RID** (Relative Identifier) distingue chaque objet ; il est distribué par le **RID Master** (Partie 1). Les RID sont **monotones et non réutilisés** - d'où l'importance de ne pas dupliquer un DC (USN/RID rollback, [module 47](#module-47-replication-multi-maitres)).
 
 **SID bien connus** (à reconnaître d'un coup d'œil) :
 
@@ -389,14 +389,14 @@ S - 1 - 5 - 21-3623811015-3361044348-30300820 - 1013
 
 ## 42.3 Le jeton d'accès
 
-À la fin d'un logon, la **LSA** (module 38) construit un **jeton d'accès** attaché à chaque processus de l'utilisateur. Il contient :
+À la fin d'un logon, la **LSA** ([module 38](#module-38-lsa-sspi-et-le-modele-de-logon)) construit un **jeton d'accès** attaché à chaque processus de l'utilisateur. Il contient :
 
 - Le **SID de l'utilisateur** et **tous les SID de groupes** (résolus récursivement - l'expansion des groupes se fait *à l'ouverture de session*, d'où : changer les groupes d'un utilisateur ne prend effet qu'au **prochain logon**).
 - Les **privilèges** (SeBackupPrivilege, SeDebugPrivilege…) - distincts des permissions sur objet.
 - Le **niveau d'intégrité** (42.6).
-- Le contenu du **PAC** (module 39) alimente ce jeton lors d'un logon réseau Kerberos.
+- Le contenu du **PAC** ([module 39](#module-39-kerberos-de-bout-en-bout)) alimente ce jeton lors d'un logon réseau Kerberos.
 
-**sidHistory** : attribut qui permet à un principal de « porter » des SID d'anciens domaines (migrations). Ajoute ces SID au jeton → utile en migration, **abusé** en attaque (injecter le SID de Domain Admins dans sidHistory = privilèges sans être membre du groupe). C'est ce que le **SID filtering** (module 51) neutralise entre forêts.
+**sidHistory** : attribut qui permet à un principal de « porter » des SID d'anciens domaines (migrations). Ajoute ces SID au jeton → utile en migration, **abusé** en attaque (injecter le SID de Domain Admins dans sidHistory = privilèges sans être membre du groupe). C'est ce que le **SID filtering** ([module 51](#module-51-approbations-inter-domaines-et-inter-forets)) neutralise entre forêts.
 
 ## 42.4 Security descriptor et ACE
 
@@ -440,27 +440,27 @@ Quand un processus (avec son jeton) demande un accès (masque souhaité) à un o
 
 ## 43.1 Au-delà des groupes
 
-Le modèle « SID + groupes » (module 42) est binaire et statique. Le **Dynamic Access Control** (DAC, Windows Server 2012) ajoute une autorisation **basée sur des attributs** - des **claims** (revendications) - évaluée dynamiquement. Objectif : exprimer des règles comme « accès si *Department = Finance* **et** *appareil géré* **et** *fichier classé Confidentiel* » sans multiplier les groupes.
+Le modèle « SID + groupes » ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)) est binaire et statique. Le **Dynamic Access Control** (DAC, Windows Server 2012) ajoute une autorisation **basée sur des attributs** - des **claims** (revendications) - évaluée dynamiquement. Objectif : exprimer des règles comme « accès si *Department = Finance* **et** *appareil géré* **et** *fichier classé Confidentiel* » sans multiplier les groupes.
 
 ## 43.2 Les briques
 
 - **User claims** : attributs de l'utilisateur transportés dans le jeton (ex. `Department`, `Country`), issus d'AD.
-- **Device claims** : attributs de la **machine** - nécessitent l'**identité composée** (utilisateur + appareil), donc **Kerberos armoring / FAST** (module 39). C'est le lien direct : pas de device claims sans FAST.
+- **Device claims** : attributs de la **machine** - nécessitent l'**identité composée** (utilisateur + appareil), donc **Kerberos armoring / FAST** ([module 39](#module-39-kerberos-de-bout-en-bout)). C'est le lien direct : pas de device claims sans FAST.
 - **Resource properties** : étiquettes sur les fichiers (ex. `Impact = High`), via la classification FSRM (Partie 2).
 - **Central Access Rules / Policies (CAR/CAP)** : des règles centralisées, distribuées par GPO, qui s'appliquent aux ressources - l'autorisation devient **pilotée centralement**, plus seulement par des ACL locales.
 
 ## 43.3 Les conditional ACEs
 
-Techniquement, DAC s'appuie sur des **ACE conditionnelles** : une ACE classique (module 42) **augmentée d'une expression booléenne** sur les claims. Exemple conceptuel :
+Techniquement, DAC s'appuie sur des **ACE conditionnelles** : une ACE classique ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)) **augmentée d'une expression booléenne** sur les claims. Exemple conceptuel :
 ```
 Allow  Modify  si  (User.Department == "Finance")  AND  (Device.Managed == True)
 ```
-L'access check (module 42) évalue en plus la condition. Si elle est fausse, l'ACE ne s'applique pas.
+L'access check ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)) évalue en plus la condition. Si elle est fausse, l'ACE ne s'applique pas.
 
 > **Cadrage d'ingénieur** : DAC est élégant mais peu déployé - complexité opérationnelle, dépendance à une classification rigoureuse, et le cloud (étiquettes de sensibilité, Conditional Access d'Entra) couvre désormais des besoins voisins. À **comprendre** pour les concepts (identité composée, autorisation par attributs) plus qu'à déployer par défaut. Je te le dis franchement pour que tu n'y investisses pas un temps disproportionné.
 
 ## 43.4 Exercice de compréhension n°34
-1. Pourquoi les device claims exigent-ils FAST/Kerberos armoring ? Relie à l'identité composée du module 39.
+1. Pourquoi les device claims exigent-ils FAST/Kerberos armoring ? Relie à l'identité composée du [module 39](#module-39-kerberos-de-bout-en-bout).
 2. Écris en pseudo-condition une ACE « lecture seule si le fichier est classé Public OU si l'utilisateur est du service RH ».
 3. Cite un scénario où DAC évite une explosion combinatoire de groupes AGDLP (rappel Partie 1).
 
@@ -546,7 +546,7 @@ La base AD, `C:\Windows\NTDS\ntds.dit`, est une base **ESE** (Extensible Storage
 
 - **Data Table** : **tous les objets** (utilisateurs, groupes, etc.), une ligne par objet, une colonne par attribut. Chaque objet a un **DNT** (Distinguished Name Tag, un identifiant interne entier) et un **PDNT** (celui de son parent) → l'arborescence est reconstituée par ces liens parent/enfant, pas stockée comme des chemins.
 - **Link Table** : les **attributs liés** (linked attributes), typiquement `member` / `memberOf`. Le **forward link** (`member`, stocké) et le **back link** (`memberOf`, **calculé** à la volée) forment une paire. *D'où : `memberOf` n'est pas écrit, il est dérivé - c'est pourquoi certaines appartenances (groupe primaire, groupes distants) n'y apparaissent pas.*
-- **SD Table** : les **security descriptors** (module 42), **mono-instanciés** (single-instance store) - un même descripteur partagé par des milliers d'objets n'est stocké qu'une fois, référencé. Économie majeure.
+- **SD Table** : les **security descriptors** ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)), **mono-instanciés** (single-instance store) - un même descripteur partagé par des milliers d'objets n'est stocké qu'une fois, référencé. Économie majeure.
 
 ## 45.3 Transactions et journaux
 
@@ -556,7 +556,7 @@ ESE est transactionnel : toute écriture passe d'abord par les **journaux** (`ed
 
 ## 45.4 Le lien avec DCSync
 
-DCSync n'« ouvre » pas `ntds.dit` : il **demande la réplication** des secrets via le protocole **MS-DRSR** (`DRSGetNCChanges`), comme le ferait un DC. Mais comprendre que les **hashes** (attributs `unicodePwd`, `supplementalCredentials`) vivent dans la Data Table, protégés par le chiffrement PEK, éclaire *ce que* l'attaquant exfiltre et *pourquoi* le droit « Replicating Directory Changes All » est aussi critique qu'un accès physique à la base (module 47).
+DCSync n'« ouvre » pas `ntds.dit` : il **demande la réplication** des secrets via le protocole **MS-DRSR** (`DRSGetNCChanges`), comme le ferait un DC. Mais comprendre que les **hashes** (attributs `unicodePwd`, `supplementalCredentials`) vivent dans la Data Table, protégés par le chiffrement PEK, éclaire *ce que* l'attaquant exfiltre et *pourquoi* le droit « Replicating Directory Changes All » est aussi critique qu'un accès physique à la base ([module 47](#module-47-replication-multi-maitres)).
 
 ## 45.5 Exercice de compréhension n°36
 1. Pourquoi `memberOf` n'apparaît-il pas toujours complet (pense forward/back link et groupe primaire) ?
@@ -570,7 +570,7 @@ DCSync n'« ouvre » pas `ntds.dit` : il **demande la réplication** des secrets
 
 ## 46.1 Un objet supprimé ne disparaît pas tout de suite
 
-Dans un annuaire **répliqué multi-maîtres** (module 47), on ne peut pas « effacer » un objet instantanément : sinon, comment prévenir les autres DC de le supprimer aussi ? La suppression doit **se répliquer**. D'où un cycle de vie en plusieurs états, piloté par des durées de vie.
+Dans un annuaire **répliqué multi-maîtres** ([module 47](#module-47-replication-multi-maitres)), on ne peut pas « effacer » un objet instantanément : sinon, comment prévenir les autres DC de le supprimer aussi ? La suppression doit **se répliquer**. D'où un cycle de vie en plusieurs états, piloté par des durées de vie.
 
 ## 46.2 Sans corbeille : l'état « tombstone »
 
@@ -595,7 +595,7 @@ La différence décisive : **tant que l'objet est en état « supprimé » (pas 
 
 Toutes les **12 heures**, chaque DC exécute une passe de *garbage collection* : purge des objets dont la durée de vie est écoulée, puis defrag en ligne. C'est un processus **local** à chaque DC (pas répliqué).
 
-> **Règle absolue rappelée** : ne jamais restaurer une sauvegarde **plus vieille que le tombstone lifetime**. Les objets supprimés depuis auront été purgés partout ; les réintroduire crée des **objets fantômes (lingering)** que les autres DC refusent - incohérence (module 47).
+> **Règle absolue rappelée** : ne jamais restaurer une sauvegarde **plus vieille que le tombstone lifetime**. Les objets supprimés depuis auront été purgés partout ; les réintroduire crée des **objets fantômes (lingering)** que les autres DC refusent - incohérence ([module 47](#module-47-replication-multi-maitres)).
 
 ## 46.5 Exercice de compréhension n°37
 1. Décris les trois états d'un objet supprimé avec la corbeille activée, et à quel moment la restauration cesse d'être complète.
@@ -724,7 +724,7 @@ Le **Resultant Set of Policy** est calculé ainsi (rappel enrichi de la Partie 1
 1. Ordre **LSDOU** : Local → Site → Domain → OU (parent → enfant). **Le dernier appliqué gagne.**
 2. **Block Inheritance** (sur une OU) coupe l'héritage du dessus…
 3. …sauf les liens **Enforced**, qui traversent tout et gagnent en dernier.
-4. **Security filtering** : le client n'applique une GPO que s'il a **Read + Apply Group Policy** (c'est une ACL sur le GPC - donc évaluée comme au module 42).
+4. **Security filtering** : le client n'applique une GPO que s'il a **Read + Apply Group Policy** (c'est une ACL sur le GPC - donc évaluée comme au [module 42](#module-42-sid-jetons-dacces-acl-et-access-check)).
 5. **WMI filtering** : la GPO ne s'applique que si la requête WMI est vraie (coûteux).
 6. **Loopback** (Merge/Replace) : fait appliquer les paramètres **User** en fonction de l'**ordinateur** (kiosques, RDS) - Replace ignore les GPO user normales, Merge les combine.
 
@@ -734,7 +734,7 @@ Chronologie : moitié **Computer** au démarrage, moitié **User** à l'ouvertur
 1. `gpresult /h rsop.html` : repère quelles GPO sont appliquées, filtrées, refusées, et par quel mécanisme.
 2. Explique pourquoi comparer la version GPC (AD) et GPT (SYSVOL) est un bon test de santé de réplication.
 3. Tu délies une GPO de Préférences et un réglage persiste : explique le tatouage et la parade.
-4. Décris comment le security filtering est, techniquement, une évaluation d'ACL (lien module 42).
+4. Décris comment le security filtering est, techniquement, une évaluation d'ACL (lien [module 42](#module-42-sid-jetons-dacces-acl-et-access-check)).
 
 ---
 
@@ -769,7 +769,7 @@ Pour faire confiance à un certificat, le validateur :
 
 ## 50.4 PKINIT : Kerberos avec un certificat au lieu d'un mot de passe
 
-**PKINIT** est l'extension de pré-authentification (module 39, étape 0) où le client **prouve son identité avec sa clé privée** au lieu d'un secret dérivé du mot de passe :
+**PKINIT** est l'extension de pré-authentification ([module 39](#module-39-kerberos-de-bout-en-bout), étape 0) où le client **prouve son identité avec sa clé privée** au lieu d'un secret dérivé du mot de passe :
 
 - Le client **signe** les données de pré-auth avec sa **clé privée** ; le KDC valide avec le **certificat** (et la chaîne). C'est le mécanisme de la **carte à puce** et de **Windows Hello for Business** (Key Trust).
 - En retour, le KDC peut fournir la clé nécessaire à la suite Kerberos. À partir de là, le client a un **TGT normal** - donc un certificat valide = un TGT = une identité complète.
@@ -785,7 +785,7 @@ Un certificat doit être **relié à un compte** AD. Deux façons :
 
 ## 50.6 Shadow Credentials (l'attaque qui prouve la compréhension)
 
-L'attribut **`msDS-KeyCredentialLink`** stocke des **clés publiques** utilisables pour l'authentification par clé (le mécanisme *Key Trust* de Windows Hello). Si un attaquant peut **écrire** cet attribut sur un compte cible (droit obtenu via une ACL faible, module 42), il y **ajoute sa propre clé** → il peut alors s'authentifier en **PKINIT** comme ce compte et obtenir un TGT. C'est **Shadow Credentials**.
+L'attribut **`msDS-KeyCredentialLink`** stocke des **clés publiques** utilisables pour l'authentification par clé (le mécanisme *Key Trust* de Windows Hello). Si un attaquant peut **écrire** cet attribut sur un compte cible (droit obtenu via une ACL faible, [module 42](#module-42-sid-jetons-dacces-acl-et-access-check)), il y **ajoute sa propre clé** → il peut alors s'authentifier en **PKINIT** comme ce compte et obtenir un TGT. C'est **Shadow Credentials**.
 
 - Défense : restreindre l'écriture de `msDS-KeyCredentialLink`, surveiller ses modifications, appliquer le mapping fort.
 - Ce que ça prouve : tu as relié **ACL (42) + PKINIT (50) + TGT (39)** en une seule chaîne. C'est exactement le raisonnement attendu d'un ingénieur sécurité.
@@ -793,7 +793,7 @@ L'attribut **`msDS-KeyCredentialLink`** stocke des **clés publiques** utilisabl
 ## 50.7 Exercice de compréhension n°41
 1. `certutil -verify -urlfetch moncert.cer` : identifie la chaîne, le CDP/AIA et le résultat de révocation.
 2. Explique la différence entre mapping implicite (UPN dans SAN) et fort (SID), et pourquoi le faible est usurpable.
-3. Décris la chaîne complète Shadow Credentials en reliant module 42, 50 et 39.
+3. Décris la chaîne complète Shadow Credentials en reliant module [42](#module-42-sid-jetons-dacces-acl-et-access-check), [50](#module-50-pki-x509-pkinit-et-mapping-certificatidentite) et [39](#module-39-kerberos-de-bout-en-bout).
 4. Pourquoi un EKU *Client Authentication* + un SAN mal contrôlé est-il si dangereux (relie à ESC1) ?
 
 ---
@@ -815,7 +815,7 @@ Quand un utilisateur du domaine A accède à une ressource du domaine B, comment
 
 ## 51.3 SID filtering : la vraie frontière de sécurité
 
-Ici se joue **pourquoi la forêt, et non le domaine, est la limite de sécurité**. Rappel (module 42) : le jeton porte les SID de l'utilisateur **et** son `sidHistory`. Sans protection, un administrateur du domaine A pourrait injecter dans un jeton le **SID de « Enterprise Admins »** (ou de Domain Admins de B) via sidHistory, et se voir accorder ces droits en B.
+Ici se joue **pourquoi la forêt, et non le domaine, est la limite de sécurité**. Rappel ([module 42](#module-42-sid-jetons-dacces-acl-et-access-check)) : le jeton porte les SID de l'utilisateur **et** son `sidHistory`. Sans protection, un administrateur du domaine A pourrait injecter dans un jeton le **SID de « Enterprise Admins »** (ou de Domain Admins de B) via sidHistory, et se voir accorder ces droits en B.
 
 Le **SID filtering** (quarantaine) est la contre-mesure : lorsqu'une authentification franchit une approbation, B **filtre / rejette les SID qui n'appartiennent pas au domaine d'origine A** (notamment ceux d'autres domaines et les SID à privilèges). Ainsi une identité de A ne peut pas « emporter » des SID forgés de B.
 
@@ -859,7 +859,7 @@ Tu as disséqué chaque pièce. Ce module les fait tourner ensemble dans **une s
 8. Session ouverte. Secrets réutilisables mis en cache dans LSASS
    (sauf isolation par Credential Guard)                                   [M38]
 ```
-> Au passage, le client a dû **trouver un DC** (DC Locator : SRV DNS + CLDAP ping, selon son site) **[M48]**, et **les GPO** se sont appliquées (moitié Computer au boot, moitié User ici, via les CSE, selon LSDOU) **[M49]**.
+> Au passage, le client a dû **trouver un DC** (DC Locator : SRV DNS + CLDAP ping, selon son site) **[[M48](#module-48-le-dc-locator)]**, et **les GPO** se sont appliquées (moitié Computer au boot, moitié User ici, via les CSE, selon LSDOU) **[[M49](#module-49-traitement-des-gpo-internals)]**.
 
 ## 52.3 Acte 2 - L'accès réseau au fichier
 
@@ -906,15 +906,15 @@ Le chemin défensif *est* la carte offensive. Chaque étape a son abus :
 | 5+50 (PKINIT / mapping) | **Shadow Credentials**, ESC1 (mapping faible) |
 | 13 (PAC) | PAC spoofing (corrigé par le PAC hardening) |
 | 15 (access check / ACL) | Abus **WriteDACL/GenericAll** (chemins BloodHound) |
-| réplication (M47) | **DCSync** |
-| trust/sidHistory (M42/M51) | Injection de SID (bloquée inter-forêts par SID filtering) |
+| réplication ([M47](#module-47-replication-multi-maitres)) | **DCSync** |
+| trust/sidHistory ([M42](#module-42-sid-jetons-dacces-acl-et-access-check)/[M51](#module-51-approbations-inter-domaines-et-inter-forets)) | Injection de SID (bloquée inter-forêts par SID filtering) |
 
 > **La leçon d'ingénieur sécurité** : tu ne mémorises pas une liste d'attaques, tu **lis un protocole et tu en déduis ses abus**. C'est exactement l'inverse du « script kiddie » qui lance des outils sans comprendre. Un ingénieur qui tient ce raisonnement anticipe les attaques de demain, pas seulement celles d'hier.
 
 ## 52.6 Exercice de synthèse final n°43
 1. Reconstitue de mémoire, sans regarder, les 19 étapes du Ctrl+Alt+Del à l'accès fichier, en annotant chaque étape du numéro de module.
 2. Pour 5 attaques de ton choix dans le tableau 52.5, cite l'étape légitime abusée **et** la contre-mesure vue dans les Parties 1-4.
-3. On te dit « le domaine est ma frontière de sécurité ». Réfute en une page en t'appuyant sur les modules 42, 47 et 51.
+3. On te dit « le domaine est ma frontière de sécurité ». Réfute en une page en t'appuyant sur les modules [42](#module-42-sid-jetons-dacces-acl-et-access-check), [47](#module-47-replication-multi-maitres) et [51](#module-51-approbations-inter-domaines-et-inter-forets).
 4. Un client s'authentifie en NTLM au lieu de Kerberos pour accéder à un serveur. Déroule l'arbre de diagnostic complet en citant les modules (SSPI, SPN, DC Locator, horloge).
 
 ---
@@ -933,7 +933,7 @@ La Partie 5 est le liant : elle transforme une compétence opérationnelle (« j
 
 **Ce qu'il te reste**, si tu veux franchir une dimension (les deux se construisent sur exactement ce socle) :
 
-- **Trajectoire 2 - hybride/cloud** : Entra ID, Entra Connect, Conditional Access, PIM, Intune. Tu verras que SAML/OIDC (M39, ADFS) et l'autorisation par claims (M43) s'y retrouvent, transposés.
+- **Trajectoire 2 - hybride/cloud** : Entra ID, Entra Connect, Conditional Access, PIM, Intune. Tu verras que SAML/OIDC ([M39](#module-39-kerberos-de-bout-en-bout), ADFS) et l'autorisation par claims ([M43](#module-43-claims-dynamic-access-control-et-conditional-aces)) s'y retrouvent, transposés.
 - **Trajectoire 3 - tout-en-code (DevSecOps, 100 % on-prem possible)** : Terraform/DSC/Ansible, GPO/PKI dans Git, CI/CD, tests Pester, SIEM, et purple teaming (BloodHound/PingCastle/Certipy) - où toute la lecture offensive de la Partie 5 devient de l'audit automatisé.
 
 ---
