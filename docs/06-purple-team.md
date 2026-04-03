@@ -5,13 +5,13 @@
 ---
 
 > **AVERTISSEMENT - À LIRE AVANT TOUT LE RESTE.**
-> Cette partie enseigne l'offensive Active Directory dans un cadre **strictement professionnel, éthique et légal**. Tout ce qui suit se pratique **uniquement** sur ton propre lab (`corp.lab.local`) ou sur des environnements conçus pour l'entraînement (module 53). Lancer ces techniques sur un système que tu ne possèdes pas, **sans autorisation écrite et périmètre défini, est un délit pénal** (en France : art. 323-1 et suivants du Code pénal ; équivalents partout). Un professionnel refuse une mission sans mandat signé - ce n'est pas une formalité, c'est le premier réflexe du métier.
+> Cette partie enseigne l'offensive Active Directory dans un cadre **strictement professionnel, éthique et légal**. Tout ce qui suit se pratique **uniquement** sur ton propre lab (`corp.lab.local`) ou sur des environnements conçus pour l'entraînement ([module 53](#module-53-cadre-methodologie-et-lab)). Lancer ces techniques sur un système que tu ne possèdes pas, **sans autorisation écrite et périmètre défini, est un délit pénal** (en France : art. 323-1 et suivants du Code pénal ; équivalents partout). Un professionnel refuse une mission sans mandat signé - ce n'est pas une formalité, c'est le premier réflexe du métier.
 >
 > **Posture de toute la partie** : on n'attaque pas pour casser, on attaque pour **savoir détecter et corriger**. C'est du **purple team**. Chaque technique offensive est systématiquement suivie de sa **détection** (événements, artefacts, règles) et de sa **remédiation** (renvoyée aux Parties 1-4). Un red teamer incapable d'expliquer la remédiation ne vaut rien ; un ops qui ne connaît pas l'offensive se fait surprendre. Cette partie fait de toi les deux.
 
 ---
 
-> **Prérequis** : Parties 1 à 5. La Partie 5 (théorie/internals) est le socle indispensable - ici on *exploite* ce qu'on y a compris. Chaque module renvoie explicitement à la théorie (« M39 = Kerberos ») et à la défense déjà vue (« P4 = Credential Guard »).
+> **Prérequis** : Parties 1 à 5. La Partie 5 (théorie/internals) est le socle indispensable - ici on *exploite* ce qu'on y a compris. Chaque module renvoie explicitement à la théorie (« [M39](05-theorie.md#module-39-kerberos-de-bout-en-bout) = Kerberos ») et à la défense déjà vue (« P4 = Credential Guard »).
 
 ## Structure de la partie (9 modules, 53 → 61)
 
@@ -93,7 +93,7 @@ Boîte à outils standard (toute publique, documentée, enseignée partout) :
 
 ## 54.1 Objectif et théorie mobilisée
 
-Avant d'attaquer, on **cartographie** : utilisateurs, groupes, machines, SPN, délégations, ACL, trusts. Tout ça est **lisible dans LDAP** (M44) par n'importe quel compte authentifié - parfois même sans authentification. C'est le rappel brutal que **AD est fait pour être interrogé**, y compris par l'attaquant une fois qu'il a le moindre pied dans la porte.
+Avant d'attaquer, on **cartographie** : utilisateurs, groupes, machines, SPN, délégations, ACL, trusts. Tout ça est **lisible dans LDAP** ([M44](05-theorie.md#module-44-ldap-et-le-modele-de-donnees)) par n'importe quel compte authentifié - parfois même sans authentification. C'est le rappel brutal que **AD est fait pour être interrogé**, y compris par l'attaquant une fois qu'il a le moindre pied dans la porte.
 
 ## 54.2 Énumération LDAP
 
@@ -103,7 +103,7 @@ Avec un simple compte de domaine (même sans privilège), on extrait énormémen
 ldapdomaindump -u 'CORP\jdupont' -p 'MotDePasse' ldap://192.168.10.10
 # Comptes avec SPN (cibles de Kerberoasting), comptes AS-REP-ables, délégations, etc.
 ```
-*Théorie : filtres et attributs LDAP (M44), userAccountControl et ses bits (M44/M42).*
+*Théorie : filtres et attributs LDAP ([M44](05-theorie.md#module-44-ldap-et-le-modele-de-donnees)), userAccountControl et ses bits ([M44](05-theorie.md#module-44-ldap-et-le-modele-de-donnees)/[M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)).*
 
 ## 54.3 BloodHound - la cartographie des chemins d'attaque
 
@@ -116,14 +116,14 @@ flowchart LR
 
 Ce que BloodHound révèle mappe **directement** la théorie de la Partie 5 :
 
-- Les arêtes `MemberOf` → M42 (jetons/groupes).
-- Les arêtes `GenericAll`, `WriteDACL`, `WriteOwner`, `ForceChangePassword` → abus d'ACL (M42).
-- `AllowedToDelegate`, `AllowedToAct` → délégation (M40).
-- `HasSession` → secrets en mémoire à récolter (M38).
+- Les arêtes `MemberOf` → [M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check) (jetons/groupes).
+- Les arêtes `GenericAll`, `WriteDACL`, `WriteOwner`, `ForceChangePassword` → abus d'ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)).
+- `AllowedToDelegate`, `AllowedToAct` → délégation ([M40](05-theorie.md#module-40-delegation-kerberos)).
+- `HasSession` → secrets en mémoire à récolter ([M38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon)).
 
 ## 54.4 PingCastle - le scoring défensif
 
-**PingCastle** produit un **rapport de posture** (score de risque, anomalies, comptes dangereux, trusts). Côté purple, c'est ton *baseline* : tu le lances sur `corp.lab.local` durci **et** sur GOAD, et tu compares les scores. C'est aussi l'outil que tu industrialiseras au module 61.
+**PingCastle** produit un **rapport de posture** (score de risque, anomalies, comptes dangereux, trusts). Côté purple, c'est ton *baseline* : tu le lances sur `corp.lab.local` durci **et** sur GOAD, et tu compares les scores. C'est aussi l'outil que tu industrialiseras au [module 61](#module-61-industrialisation-audit-as-code-projet-final).
 
 ## 54.5 🛡️ Détection & remédiation (le pivot blue)
 
@@ -142,7 +142,7 @@ Ce que BloodHound révèle mappe **directement** la théorie de la Partie 5 :
 
 ## 55.1 Objectif et théorie mobilisée
 
-Obtenir un **premier jeu d'identifiants valides**. Les trois voies classiques en interne reposent toutes sur la théorie NTLM/Kerberos (M41/M39) et la faiblesse des mots de passe (M37).
+Obtenir un **premier jeu d'identifiants valides**. Les trois voies classiques en interne reposent toutes sur la théorie NTLM/Kerberos ([M41](05-theorie.md#module-41-ntlm)/[M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)) et la faiblesse des mots de passe ([M37](05-theorie.md#module-37-cryptographie-appliquee-a-lidentite)).
 
 ## 55.2 Password spraying
 
@@ -156,8 +156,8 @@ nxc smb 192.168.10.10 -u utilisateurs.txt -p 'Automne2025!' --continue-on-succes
 
 ## 55.3 LLMNR / NBT-NS poisoning (Responder)
 
-Quand la résolution DNS échoue, les clients Windows crient sur le réseau via **LLMNR/NBT-NS** « qui est \\SRVX ? ». Un attaquant (**Responder**) répond « c'est moi » et capture le **Net-NTLMv2** de la victime → à casser hors-ligne, ou à **relayer** (M57).
-*Théorie : NTLM et absence de liaison au canal (M41).*
+Quand la résolution DNS échoue, les clients Windows crient sur le réseau via **LLMNR/NBT-NS** « qui est \\SRVX ? ». Un attaquant (**Responder**) répond « c'est moi » et capture le **Net-NTLMv2** de la victime → à casser hors-ligne, ou à **relayer** ([M57](#module-57-mouvement-lateral)).
+*Théorie : NTLM et absence de liaison au canal ([M41](05-theorie.md#module-41-ntlm)).*
 
 **🛡️ Détection** : trafic LLMNR/NBT-NS anormal, authentifications vers des hôtes inexistants. **Remédiation (rappel P1)** : **désactiver LLMNR et NBT-NS par GPO** - c'est la parade structurelle, elle coupe l'amorçage de tout le reste. Signature SMB pour empêcher le relais qui suit.
 
@@ -177,7 +177,7 @@ Avec un compte lambda, comment devenir admin ? Presque toujours en **abusant d'u
 
 ## 56.2 Kerberoasting (T1558.003)
 
-**Principe (M39)** : tout utilisateur authentifié peut demander un **ticket de service** pour n'importe quel SPN. Ce ticket est **chiffré avec la clé du compte de service** → si ce compte a un mot de passe faible, on casse le ticket **hors-ligne** et on obtient le mot de passe. L'attaquant **force le chiffrement RC4** (M37 : hash NT sans sel, cassable vite).
+**Principe ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))** : tout utilisateur authentifié peut demander un **ticket de service** pour n'importe quel SPN. Ce ticket est **chiffré avec la clé du compte de service** → si ce compte a un mot de passe faible, on casse le ticket **hors-ligne** et on obtient le mot de passe. L'attaquant **force le chiffrement RC4** ([M37](05-theorie.md#module-37-cryptographie-appliquee-a-lidentite) : hash NT sans sel, cassable vite).
 ```bash
 # Illustratif : demander les tickets des comptes à SPN
 GetUserSPNs.py corp.lab.local/jdupont -request   # Impacket
@@ -188,15 +188,15 @@ hashcat -m 13100 tickets.txt wordlist.txt          # cassage hors-ligne
 
 ## 56.3 AS-REP roasting (T1558.004)
 
-**Principe (M39)** : un compte avec **pré-authentification désactivée** livre, sur simple demande, un AS-REP chiffré avec sa clé → cassable hors-ligne.
+**Principe ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))** : un compte avec **pré-authentification désactivée** livre, sur simple demande, un AS-REP chiffré avec sa clé → cassable hors-ligne.
 ```bash
 GetNPUsers.py corp.lab.local/ -usersfile users.txt -no-pass   # Impacket
 ```
-**🛡️ Détection** : **4768** avec pre-auth non requise. **Remédiation** : **ne jamais désactiver la pré-auth** (auditer `DONT_REQ_PREAUTH`), **FAST/armoring** (M39).
+**🛡️ Détection** : **4768** avec pre-auth non requise. **Remédiation** : **ne jamais désactiver la pré-auth** (auditer `DONT_REQ_PREAUTH`), **FAST/armoring** ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)).
 
 ## 56.4 Abus d'ACL (T1222 / T1098)
 
-**Principe (M42)** : des droits comme **GenericAll**, **WriteDACL**, **WriteOwner**, **ForceChangePassword**, ou **WriteProperty sur `member`** permettent à un utilisateur de se donner des droits ou de s'ajouter à un groupe privilégié. BloodHound (M54) les a déjà cartographiés.
+**Principe ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check))** : des droits comme **GenericAll**, **WriteDACL**, **WriteOwner**, **ForceChangePassword**, ou **WriteProperty sur `member`** permettent à un utilisateur de se donner des droits ou de s'ajouter à un groupe privilégié. BloodHound ([M54](#module-54-reconnaissance-enumeration)) les a déjà cartographiés.
 ```
 Ex. : jdupont a "ForceChangePassword" sur admin_svc
    → réinitialiser le mdp d'admin_svc → prendre son identité
@@ -207,20 +207,20 @@ Ex. : jdupont a "WriteDACL" sur le groupe "Domain Admins"
 
 ## 56.5 Abus de délégation (T1558.003 / T1550)
 
-**Principe (M40)** : délégation **non contrainte** (vol de TGT des visiteurs, y compris DC via coercition), ou droit d'écrire **`msDS-AllowedToActOnBehalfOfOtherIdentity`** (RBCD) → chaîne S4U → usurpation.
+**Principe ([M40](05-theorie.md#module-40-delegation-kerberos))** : délégation **non contrainte** (vol de TGT des visiteurs, y compris DC via coercition), ou droit d'écrire **`msDS-AllowedToActOnBehalfOfOtherIdentity`** (RBCD) → chaîne S4U → usurpation.
 **🛡️ Détection** : modifs de `msDS-AllowedToAct...`, comptes `TrustedForDelegation`. **Remédiation** : proscrire la délégation non contrainte, **RBCD granulaire** (P4), mettre les comptes sensibles dans **Protected Users** (interdit leur délégation).
 
 ## 56.6 ADCS - ESC1 à ESC8 (Certipy)
 
-**Principe (M50 + P2)** : une **PKI mal configurée** offre des escalades directes vers Domain Admin. Rappel des vedettes : **ESC1** (template laissant fournir un SAN arbitraire + Client Auth → certif « au nom de » DA), **ESC8** (relais NTLM vers l'endpoint web de la CA → certif de DC → DCSync).
+**Principe ([M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite) + P2)** : une **PKI mal configurée** offre des escalades directes vers Domain Admin. Rappel des vedettes : **ESC1** (template laissant fournir un SAN arbitraire + Client Auth → certif « au nom de » DA), **ESC8** (relais NTLM vers l'endpoint web de la CA → certif de DC → DCSync).
 ```bash
 certipy find -u jdupont@corp.lab.local -p '...' -dc-ip 192.168.10.10   # trouver les templates vulnérables
 ```
-**🛡️ Détection** : émissions de certificats anormales (audit CA, event **4886/4887**), auth par certif inhabituelles. **Remédiation (P2, M50)** : corriger les templates (pas de SAN libre + Client Auth pour tous), retirer le flag **ESC6**, EPA/HTTPS sur le web enrollment (ESC8), **mapping fort** SID (KB5014754), auditer avec Certipy/PSPKI.
+**🛡️ Détection** : émissions de certificats anormales (audit CA, event **4886/4887**), auth par certif inhabituelles. **Remédiation (P2, [M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite))** : corriger les templates (pas de SAN libre + Client Auth pour tous), retirer le flag **ESC6**, EPA/HTTPS sur le web enrollment (ESC8), **mapping fort** SID (KB5014754), auditer avec Certipy/PSPKI.
 
 ## 56.7 Shadow Credentials (T1556)
 
-**Principe (M50)** : droit d'écrire **`msDS-KeyCredentialLink`** sur une cible → y ajouter sa propre clé → s'authentifier en **PKINIT** comme la cible → TGT. Relie ACL (M42) + PKINIT (M50) + TGT (M39).
+**Principe ([M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite))** : droit d'écrire **`msDS-KeyCredentialLink`** sur une cible → y ajouter sa propre clé → s'authentifier en **PKINIT** comme la cible → TGT. Relie ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)) + PKINIT ([M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite)) + TGT ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)).
 **🛡️ Détection** : modifications de `msDS-KeyCredentialLink` (**5136**). **Remédiation** : restreindre l'écriture de cet attribut, mapping fort, surveiller.
 
 ## 56.8 Exercice n°47
@@ -235,11 +235,11 @@ certipy find -u jdupont@corp.lab.local -p '...' -dc-ip 192.168.10.10   # trouver
 
 ## 57.1 Objectif et théorie mobilisée
 
-Une fois un jeu d'identifiants (ou un hash, ou un ticket) obtenu, on **rebondit** de machine en machine pour se rapprocher des actifs Tier 0. Tout repose sur ce qu'on a compris au module 38 : **LSASS conserve des secrets réutilisables**, et NTLM/Kerberos permettent de les rejouer.
+Une fois un jeu d'identifiants (ou un hash, ou un ticket) obtenu, on **rebondit** de machine en machine pour se rapprocher des actifs Tier 0. Tout repose sur ce qu'on a compris au [module 38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon) : **LSASS conserve des secrets réutilisables**, et NTLM/Kerberos permettent de les rejouer.
 
 ## 57.2 Pass-the-Hash (T1550.002)
 
-**Principe (M37/M41)** : le **hash NT** *est* le secret d'authentification NTLM. Pas besoin du mot de passe : on présente le hash.
+**Principe ([M37](05-theorie.md#module-37-cryptographie-appliquee-a-lidentite)/[M41](05-theorie.md#module-41-ntlm))** : le **hash NT** *est* le secret d'authentification NTLM. Pas besoin du mot de passe : on présente le hash.
 ```bash
 # Illustratif, sur ton lab
 nxc smb 192.168.10.20 -u Administrateur -H <hash_NT>
@@ -249,12 +249,12 @@ psexec.py -hashes :<hash_NT> corp.lab.local/Administrateur@192.168.10.20
 
 ## 57.3 Pass-the-Ticket & Overpass-the-Hash (T1550.003)
 
-**Principe (M38/M39)** : injecter un **ticket Kerberos** volé en mémoire (pass-the-ticket), ou utiliser le hash NT pour **forger une demande de TGT** (overpass-the-hash, « pass-the-key »).
+**Principe ([M38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon)/[M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))** : injecter un **ticket Kerberos** volé en mémoire (pass-the-ticket), ou utiliser le hash NT pour **forger une demande de TGT** (overpass-the-hash, « pass-the-key »).
 ```
 mimikatz : sekurlsa::tickets /export   → réinjecter un TGT/ticket de service
 Rubeus   : asktgt /user:... /rc4:<hash>  (overpass-the-hash)
 ```
-**🛡️ Détection** : incohérences (ticket utilisé depuis une autre machine que celle d'émission), durées de vie anormales. **Remédiation** : Credential Guard, **durées de vie de tickets courtes** (M39), Protected Users.
+**🛡️ Détection** : incohérences (ticket utilisé depuis une autre machine que celle d'émission), durées de vie anormales. **Remédiation** : Credential Guard, **durées de vie de tickets courtes** ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)), Protected Users.
 
 ## 57.4 Exécution distante (T1021)
 
@@ -263,11 +263,11 @@ Avec des identifiants valides sur une cible, on exécute du code : **psexec/smbe
 
 ## 57.5 Relais NTLM (T1557)
 
-**Principe (M41)** : capté via Responder (M55), le Net-NTLM d'une victime est **relayé** vers un autre service (SMB, **LDAP**, HTTP de la CA…) → action authentifiée en tant que la victime, sans jamais casser le hash.
+**Principe ([M41](05-theorie.md#module-41-ntlm))** : capté via Responder ([M55](#module-55-acces-initial)), le Net-NTLM d'une victime est **relayé** vers un autre service (SMB, **LDAP**, HTTP de la CA…) → action authentifiée en tant que la victime, sans jamais casser le hash.
 ```
 Responder (capture) + ntlmrelayx (relais) → ex. relais LDAP pour poser du RBCD, ou vers la CA (ESC8)
 ```
-**🛡️ Détection** : authentifications relayées (source ≠ origine attendue), pics NTLM. **Remédiation (structurelle)** : **signature SMB** obligatoire, **signature + channel binding LDAP** (P1), **EPA** sur les endpoints HTTP (CA), désactiver LLMNR/NBT-NS. Chacune casse une étape précise du relais (M41).
+**🛡️ Détection** : authentifications relayées (source ≠ origine attendue), pics NTLM. **Remédiation (structurelle)** : **signature SMB** obligatoire, **signature + channel binding LDAP** (P1), **EPA** sur les endpoints HTTP (CA), désactiver LLMNR/NBT-NS. Chacune casse une étape précise du relais ([M41](05-theorie.md#module-41-ntlm)).
 
 ## 57.6 Exercice n°48
 1. Sur le lab : réalise un pass-the-hash vers un serveur, puis active Credential Guard/LAPS sur `corp.lab.local` et montre que le hash récolté ne rejoue plus ou ne sert plus ailleurs.
@@ -280,11 +280,11 @@ Responder (capture) + ntlmrelayx (relais) → ex. relais LDAP pour poser du RBCD
 
 ## 58.1 Objectif et théorie mobilisée
 
-C'est l'aboutissement : contrôle total du domaine. Toutes les techniques ici découlent directement de la **réplication (M47)** et de **krbtgt/PAC (M39)**. Les comprendre, c'est comprendre *pourquoi* elles donnent les clés du royaume - et comment les détecter.
+C'est l'aboutissement : contrôle total du domaine. Toutes les techniques ici découlent directement de la **réplication ([M47](05-theorie.md#module-47-replication-multi-maitres))** et de **krbtgt/PAC ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))**. Les comprendre, c'est comprendre *pourquoi* elles donnent les clés du royaume - et comment les détecter.
 
 ## 58.2 DCSync (T1003.006)
 
-**Principe (M47)** : se faire passer pour un DC et appeler le RPC de réplication (`DRSGetNCChanges`) pour demander les **secrets** de n'importe quel compte - **y compris `krbtgt`**. Aucun code sur le DC : c'est une requête « légitime », donc discrète. Nécessite le droit étendu **« Replicating Directory Changes / All »**.
+**Principe ([M47](05-theorie.md#module-47-replication-multi-maitres))** : se faire passer pour un DC et appeler le RPC de réplication (`DRSGetNCChanges`) pour demander les **secrets** de n'importe quel compte - **y compris `krbtgt`**. Aucun code sur le DC : c'est une requête « légitime », donc discrète. Nécessite le droit étendu **« Replicating Directory Changes / All »**.
 ```bash
 secretsdump.py -just-dc corp.lab.local/Administrateur@192.168.10.10   # Impacket
 ```
@@ -292,18 +292,18 @@ secretsdump.py -just-dc corp.lab.local/Administrateur@192.168.10.10   # Impacket
 
 ## 58.3 Golden Ticket (T1558.001)
 
-**Principe (M39)** : avec le hash/clé de **`krbtgt`** (obtenu par DCSync), forger un **TGT arbitraire** - n'importe quel utilisateur, n'importe quels groupes, validité arbitraire. Le KDC l'accepte puisqu'il est chiffré avec *sa* clé.
-**🛡️ Détection** : TGT à durée de vie anormale, TGT sans AS-REQ préalable (logon « à partir de nulle part »), incohérences PAC. **Remédiation** : **double reset de `krbtgt`** après compromission (M39), protéger `krbtgt` comme actif Tier 0, PAC validation.
+**Principe ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))** : avec le hash/clé de **`krbtgt`** (obtenu par DCSync), forger un **TGT arbitraire** - n'importe quel utilisateur, n'importe quels groupes, validité arbitraire. Le KDC l'accepte puisqu'il est chiffré avec *sa* clé.
+**🛡️ Détection** : TGT à durée de vie anormale, TGT sans AS-REQ préalable (logon « à partir de nulle part »), incohérences PAC. **Remédiation** : **double reset de `krbtgt`** après compromission ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)), protéger `krbtgt` comme actif Tier 0, PAC validation.
 
 ## 58.4 Silver Ticket & DCShadow
 
-- **Silver Ticket (M39)** : forger un **ticket de service** (pas un TGT) avec la clé d'un compte de service → accès à *ce* service, **sans contacter le DC** (très discret). **Détection** difficile (pas de trace DC) → repose sur les logs *du service* ciblé et la cohérence PAC. **Remédiation** : gMSA, AES-only, PAC validation.
+- **Silver Ticket ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout))** : forger un **ticket de service** (pas un TGT) avec la clé d'un compte de service → accès à *ce* service, **sans contacter le DC** (très discret). **Détection** difficile (pas de trace DC) → repose sur les logs *du service* ciblé et la cohérence PAC. **Remédiation** : gMSA, AES-only, PAC validation.
 - **DCShadow** : enregistrer un **faux DC** temporaire pour **injecter** des modifications répliquées (ex. se rajouter un SID privilégié) sans passer par les journaux classiques. **Détection** : apparition de sources de réplication non autorisées, changements de la config des DC. **Remédiation** : surveiller les objets `nTDSDSA`/`server` de la partition Configuration, restreindre qui peut créer des DC.
 
 ## 58.5 Exercice n°49
 1. Sur le lab : réalise un DCSync (`-just-dc`), puis retrouve **ton** événement 4662 côté DC et écris la règle « réplication depuis un non-DC ».
 2. Forge un Golden Ticket sur le lab, comprends pourquoi il est accepté, puis exécute le **double reset krbtgt** et montre son invalidation.
-3. Explique par écrit pourquoi le Silver Ticket est plus discret que le Golden, en te basant sur M39 (qui déchiffre le ticket ?).
+3. Explique par écrit pourquoi le Silver Ticket est plus discret que le Golden, en te basant sur [M39](05-theorie.md#module-39-kerberos-de-bout-en-bout) (qui déchiffre le ticket ?).
 
 ---
 
@@ -311,14 +311,14 @@ secretsdump.py -just-dc corp.lab.local/Administrateur@192.168.10.10   # Impacket
 
 ## 59.1 Objectif et théorie mobilisée
 
-Après compromission, l'attaquant veut **rester** même si les mots de passe changent. Les techniques exploitent les internals des ACL (M42) et des GPO (M49). Côté défense, la persistance est ce qui **survit à une remédiation naïve** - d'où l'importance de la détecter.
+Après compromission, l'attaquant veut **rester** même si les mots de passe changent. Les techniques exploitent les internals des ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)) et des GPO ([M49](05-theorie.md#module-49-traitement-des-gpo-internals)). Côté défense, la persistance est ce qui **survit à une remédiation naïve** - d'où l'importance de la détecter.
 
 ## 59.2 Techniques principales
 
-- **AdminSDHolder / SDProp (T1098)** : l'objet `AdminSDHolder` définit les ACL des comptes protégés ; le processus **SDProp** les réapplique toutes les ~60 min. Y planter une ACE malveillante = **backdoor qui se réinstalle toute seule**. *Théorie : ACL (M42).* **Détection** : modifs d'`AdminSDHolder`, ACE inattendues sur les comptes protégés. **Remédiation** : auditer AdminSDHolder, réinitialiser les ACL de référence.
+- **AdminSDHolder / SDProp (T1098)** : l'objet `AdminSDHolder` définit les ACL des comptes protégés ; le processus **SDProp** les réapplique toutes les ~60 min. Y planter une ACE malveillante = **backdoor qui se réinstalle toute seule**. *Théorie : ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)).* **Détection** : modifs d'`AdminSDHolder`, ACE inattendues sur les comptes protégés. **Remédiation** : auditer AdminSDHolder, réinitialiser les ACL de référence.
 - **Backdoors d'ACL** : s'octroyer discrètement `GenericAll`/`WriteDACL` sur un objet clé. **Détection** : 5136 sur les objets sensibles, revues d'ACL régulières (BloodHound en mode défensif). **Remédiation** : corriger, surveiller.
-- **Abus de GPO (T1484.001)** : modifier une GPO liée largement pour exécuter du code partout, ou ajouter un admin local via Préférences. *Théorie : GPO internals (M49).* **Détection** : modifs de GPO (**5136/5137**), écarts de version GPC/GPT (M49). **Remédiation** : restreindre qui édite les GPO, versionner les GPO (P4/pont P-suivante), alerter sur les changements.
-- **Golden gMSA / clé KDS, delegated MSA, certificats machine longue durée** : persistances plus avancées reliées à la PKI (M50) et aux comptes gérés - à connaître conceptuellement.
+- **Abus de GPO (T1484.001)** : modifier une GPO liée largement pour exécuter du code partout, ou ajouter un admin local via Préférences. *Théorie : GPO internals ([M49](05-theorie.md#module-49-traitement-des-gpo-internals)).* **Détection** : modifs de GPO (**5136/5137**), écarts de version GPC/GPT ([M49](05-theorie.md#module-49-traitement-des-gpo-internals)). **Remédiation** : restreindre qui édite les GPO, versionner les GPO (P4/pont P-suivante), alerter sur les changements.
+- **Golden gMSA / clé KDS, delegated MSA, certificats machine longue durée** : persistances plus avancées reliées à la PKI ([M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite)) et aux comptes gérés - à connaître conceptuellement.
 
 ## 59.3 Exercice n°50
 1. Sur le lab : plante une ACE dans AdminSDHolder, attends la passe SDProp, constate la réinstallation, puis nettoie et écris la détection.
@@ -331,12 +331,12 @@ Après compromission, l'attaquant veut **rester** même si les mots de passe cha
 
 ## 60.1 Le module qui referme la boucle purple
 
-Les modules 54-59 donnaient la détection *par technique*. Ici on **industrialise la détection** : quelles sources, quelles règles, quelle architecture SOC. C'est le prolongement direct de ton observabilité de la **Partie 4 (module 35, WEF/SIEM)**.
+Les modules [54](#module-54-reconnaissance-enumeration)-[59](#module-59-persistance) donnaient la détection *par technique*. Ici on **industrialise la détection** : quelles sources, quelles règles, quelle architecture SOC. C'est le prolongement direct de ton observabilité de la **Partie 4 ([module 35](04-exploitation-sre.md#module-35-pratiques-sre-appliquees-a-un-parc-windows), WEF/SIEM)**.
 
 ## 60.2 Les sources de vérité
 
 - **Journaux de sécurité Windows** centralisés par **WEF** (P4) ou agents, vers un **SIEM** (Sentinel, Splunk, Elastic, Wazuh).
-- **Audit avancé activé** (P1, module 12) : Account Logon, Logon/Logoff, DS Access, Sensitive Privilege Use, Object Access.
+- **Audit avancé activé** (P1, [module 12](01-fondations.md#module-12-securite-et-durcissement-hardening)) : Account Logon, Logon/Logoff, DS Access, Sensitive Privilege Use, Object Access.
 - **PowerShell logging** (P4) : Script Block + Module + Transcription.
 - **Journaux applicatifs** : CA (ADCS), DNS, DFSR.
 
@@ -431,9 +431,9 @@ Checklist :
 5. Pourquoi la signature LDAP + EPA cassent-elles le relais NTLM (au niveau protocole) ?
 6. Qu'est-ce qu'un honeytoken et pourquoi son taux de faux positifs est-il quasi nul ?
 7. AdminSDHolder : pourquoi une backdoor y placée « revient » toute seule ?
-8. Un client s'authentifie en NTLM au lieu de Kerberos : arbre de diagnostic (rappel M38).
+8. Un client s'authentifie en NTLM au lieu de Kerberos : arbre de diagnostic (rappel [M38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon)).
 9. Comment industrialiser l'audit AD en CI, et quels outils pour quels indicateurs ?
-10. Le domaine est-il une frontière de sécurité ? Justifie avec le SID filtering (M51).
+10. Le domaine est-il une frontière de sécurité ? Justifie avec le SID filtering ([M51](05-theorie.md#module-51-approbations-inter-domaines-et-inter-forets)).
 
 ## 61.5 Conclusion - et le mot de la fin du parcours complet
 
@@ -446,7 +446,7 @@ La Partie 6 est la démonstration de tout le reste : tu **attaques ce que tu as 
 **Les deux directions qui restent** (changement de dimension, appuyées sur tout ce socle) :
 
 - **Trajectoire 2 - hybride/cloud** : porter cette maîtrise vers Entra ID, Conditional Access, Intune. L'offensive s'y prolonge (attaques sur les identités cloud, Entra Connect, jetons OAuth).
-- **Trajectoire 3 - tout-en-code** : dont le module 61 est déjà l'amorce. IaC + audit de sécurité continu = *DevSecOps* au sens plein.
+- **Trajectoire 3 - tout-en-code** : dont le [module 61](#module-61-industrialisation-audit-as-code-projet-final) est déjà l'amorce. IaC + audit de sécurité continu = *DevSecOps* au sens plein.
 
 ---
 
@@ -454,14 +454,14 @@ La Partie 6 est la démonstration de tout le reste : tu **attaques ce que tu as 
 
 | Phase | Technique offensive | Théorie mobilisée | Défense |
 |---|---|---|---|
-| **RECON (54)** | BloodHound/PingCastle | LDAP (M44), ACL (M42) | honeytokens, ACL réduites |
-| **ACCÈS INIT (55)** | spraying/Responder | NTLM (M41), mdp (M37) | LLMNR off, MFA, mdp forts |
-| **ESCALADE (56)** | Kerberoast/AS-REP | Kerberos (M39) | gMSA, AES-only, FAST |
-| | ACL abuse | jetons/ACL (M42) | moindre privilège |
-| | ADCS ESC / Shadow Cred | PKINIT (M50) | templates fixés, mapping fort |
-| **LATÉRAL (57)** | PtH/PtT/relais | LSA (M38), NTLM (M41) | Credential Guard, LAPS, signatures |
-| **DOMINATION (58)** | DCSync/Golden | réplication (M47), krbtgt (M39) | restr. réplication, reset krbtgt |
-| **PERSISTANCE (59)** | AdminSDHolder/GPO | ACL (M42), GPO (M49) | audit ACL/GPO, versionnage |
+| **RECON (54)** | BloodHound/PingCastle | LDAP ([M44](05-theorie.md#module-44-ldap-et-le-modele-de-donnees)), ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)) | honeytokens, ACL réduites |
+| **ACCÈS INIT (55)** | spraying/Responder | NTLM ([M41](05-theorie.md#module-41-ntlm)), mdp ([M37](05-theorie.md#module-37-cryptographie-appliquee-a-lidentite)) | LLMNR off, MFA, mdp forts |
+| **ESCALADE (56)** | Kerberoast/AS-REP | Kerberos ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)) | gMSA, AES-only, FAST |
+| | ACL abuse | jetons/ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)) | moindre privilège |
+| | ADCS ESC / Shadow Cred | PKINIT ([M50](05-theorie.md#module-50-pki-x509-pkinit-et-mapping-certificatidentite)) | templates fixés, mapping fort |
+| **LATÉRAL (57)** | PtH/PtT/relais | LSA ([M38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon)), NTLM ([M41](05-theorie.md#module-41-ntlm)) | Credential Guard, LAPS, signatures |
+| **DOMINATION (58)** | DCSync/Golden | réplication ([M47](05-theorie.md#module-47-replication-multi-maitres)), krbtgt ([M39](05-theorie.md#module-39-kerberos-de-bout-en-bout)) | restr. réplication, reset krbtgt |
+| **PERSISTANCE (59)** | AdminSDHolder/GPO | ACL ([M42](05-theorie.md#module-42-sid-jetons-dacces-acl-et-access-check)), GPO ([M49](05-theorie.md#module-49-traitement-des-gpo-internals)) | audit ACL/GPO, versionnage |
 | **BLUE (60)** | SIEM/Sigma/honeytokens | tous | détection industrialisée |
 | **AUDIT CODE (61)** | PingCastle/BH/Certipy CI | tous | non-régression de sécurité |
 
