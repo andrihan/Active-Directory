@@ -41,9 +41,9 @@ Rappel du modèle de niveaux, **appliqué au tooling** :
 
 ## 75.3 Les trois piliers de la gouvernance du tooling
 
-1. **Déployer** de façon **déclarative et à l'échelle** (GPO/DSC), jamais à la main - un agent manquant = un angle mort (module 77).
-2. **Restreindre** les identités du tooling au **strict nécessaire** (gMSA, délégation, jamais Domain Admin - module 78).
-3. **Protéger** le tooling lui-même : logs inviolables, anti-sabotage des capteurs, accès Tier 0, break-glass (module 79).
+1. **Déployer** de façon **déclarative et à l'échelle** (GPO/DSC), jamais à la main - un agent manquant = un angle mort ([module 77](#module-77-deploiement-a-lechelle-par-gpo)).
+2. **Restreindre** les identités du tooling au **strict nécessaire** (gMSA, délégation, jamais Domain Admin - [module 78](#module-78-identites-comptes-de-service-du-tooling)).
+3. **Protéger** le tooling lui-même : logs inviolables, anti-sabotage des capteurs, accès Tier 0, break-glass ([module 79](#module-79-securiser-le-tooling-lui-meme)).
 
 ## 75.4 Exercice n°63
 1. Dresse l'inventaire des outils de ton lab (Sysmon, WEC, SIEM, SOAR, PKI, LAPS…) et **classe chacun par tier**. Justifie chaque Tier 0.
@@ -107,11 +107,11 @@ New-ADGroup -Name "DL_Containment_AD"    -GroupScope DomainLocal -GroupCategory 
 Add-ADGroupMember "DL_Read_SecurityLogs" "G_SOC_Tier1","G_SOC_Tier2"
 Add-ADGroupMember "DL_Containment_AD"    "G_SOC_Response"
 ```
-`G_SOC_Response` recevra la **capacité de confinement** (désactiver un compte) via JEA au module 78 - pas des droits admin.
+`G_SOC_Response` recevra la **capacité de confinement** (désactiver un compte) via JEA au [module 78](#module-78-identites-comptes-de-service-du-tooling) - pas des droits admin.
 
 ## 76.3 Séparer les GPO : durcir fort le tooling
 
-Chaque OU de tooling reçoit des GPO **plus strictes** que la prod : refus de logon interactif pour les comptes non-T0, restriction des flux, pas de navigation, baseline renforcée (P4 M33). Le tooling Tier 0 n'est administrable **que** depuis un PAW.
+Chaque OU de tooling reçoit des GPO **plus strictes** que la prod : refus de logon interactif pour les comptes non-T0, restriction des flux, pas de navigation, baseline renforcée (P4 [M33](04-exploitation-sre.md#module-33-durcissement-systeme-avance)). Le tooling Tier 0 n'est administrable **que** depuis un PAW.
 
 ## 76.4 Exercice n°64
 1. Crée l'OU `Security-Tooling` et ses sous-OU ; déplaces-y tes VM SIEM/WEC/SOAR de lab.
@@ -206,7 +206,7 @@ La **couverture télémétrie** (% d'actifs qui émettent) est une métrique SOC
 
 ## 78.1 Le péché mortel : le compte de service Domain Admin
 
-L'anti-pattern le plus courant et le plus grave : installer un SIEM, un agent, un SOAR, une sauvegarde… avec un **compte de service membre de Domain Admins** « parce que c'est plus simple ». Résultat : le hash de ce compte traîne sur le serveur du tooling (P5 M38), et sa compromission = domaine entier. **Chaque outil tourne avec le privilège minimal, via un compte géré.**
+L'anti-pattern le plus courant et le plus grave : installer un SIEM, un agent, un SOAR, une sauvegarde… avec un **compte de service membre de Domain Admins** « parce que c'est plus simple ». Résultat : le hash de ce compte traîne sur le serveur du tooling (P5 [M38](05-theorie.md#module-38-lsa-sspi-et-le-modele-de-logon)), et sa compromission = domaine entier. **Chaque outil tourne avec le privilège minimal, via un compte géré.**
 
 ## 78.2 gMSA pour les comptes de service (rappel P1 M11.4 / P2)
 
@@ -226,7 +226,7 @@ Test-ADServiceAccount gmsa-siemfwd     # True attendu
 
 ## 78.3 Délégation : donner à chaque outil *juste* ce qu'il lui faut
 
-Principe de moindre privilège appliqué finement (rappel délégation P1 M6.6) :
+Principe de moindre privilège appliqué finement (rappel délégation P1 [M6](01-fondations.md#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou).6) :
 
 - **SIEM / agents** : besoin de **lire** des logs et éventuellement l'annuaire. → `DL_Read_SecurityLogs`, appartenance à *Event Log Readers*, **lecture seule** LDAP. Jamais d'écriture.
 - **SOAR** : besoin d'**agir** pour le confinement (désactiver un compte, le sortir de groupes). → **délégation ciblée** sur les OU concernées, **pas** Domain Admin :
@@ -301,12 +301,12 @@ Un attaquant admin local peut **effacer les journaux** (`wevtutil cl Security`, 
 
 ## 79.3 Anti-sabotage des capteurs
 
-L'attaquant tentera de **désactiver Sysmon** (`sysmon -u`, arrêt de service, altération de config) ou d'aveugler ETW/AMSI (P6-bis M65). On surveille l'**absence** :
+L'attaquant tentera de **désactiver Sysmon** (`sysmon -u`, arrêt de service, altération de config) ou d'aveugler ETW/AMSI (P6-bis [M65](06-bis-red-team.md#module-65-opsec-evasion-concepts-et-detection)). On surveille l'**absence** :
 
 - **Arrêt de service Sysmon** → event système **7036/7040** sur le service `Sysmon64` ; **Sysmon Event 255** (erreur) ; **désinstallation** du driver.
 - **Changement de config Sysmon** → **Sysmon Event 16** (le capteur logue lui-même sa reconfiguration) : toute config non poussée par ta GPO = suspecte.
-- **Chute de volume** de télémétrie (Sysmon/Security/PowerShell) → détection d'**aveuglement** (P6-bis M65) : une source qui se tait est une alerte.
-- **Protéger le service** : ACL restrictives, et sur Windows récent, envisager la protection du service ; sauvegarder la config en lecture seule sur le partage (module 77).
+- **Chute de volume** de télémétrie (Sysmon/Security/PowerShell) → détection d'**aveuglement** (P6-bis [M65](06-bis-red-team.md#module-65-opsec-evasion-concepts-et-detection)) : une source qui se tait est une alerte.
+- **Protéger le service** : ACL restrictives, et sur Windows récent, envisager la protection du service ; sauvegarder la config en lecture seule sur le partage ([module 77](#module-77-deploiement-a-lechelle-par-gpo)).
 
 ```
 Règle SIEM "capteur muet" : pour chaque hôte, si volume(Sysmon events, 1h) == 0
@@ -315,12 +315,12 @@ Règle SIEM "capteur muet" : pour chaque hôte, si volume(Sysmon events, 1h) == 
 
 ## 79.4 Accès Tier 0 strict au tooling
 
-Rappel P4, appliqué au tooling (module 75) :
+Rappel P4, appliqué au tooling ([module 75](#module-75-le-tooling-de-securite-comme-infrastructure-gouvernee)) :
 
 - SIEM / WEC / console EDR / SOAR / PKI administrés **uniquement depuis un PAW**, avec des comptes **Tier 0 dédiés** (`adm-t0-*`), jamais des comptes bureautiques.
 - Comptes T0 dans **Protected Users** (P4) : pas de cache, NTLM bloqué, délégation interdite.
 - **Authentication Policies / Silos** : verrouiller *où* les comptes T0 peuvent s'authentifier (uniquement sur les actifs T0).
-- **Segmentation réseau** : le management du tooling sur un VLAN isolé ; l'ingestion SIEM et l'egress des collecteurs filtrés (rappel egress filtering, P6-bis M64).
+- **Segmentation réseau** : le management du tooling sur un VLAN isolé ; l'ingestion SIEM et l'egress des collecteurs filtrés (rappel egress filtering, P6-bis [M64](06-bis-red-team.md#module-64-infrastructure-offensive-command-and-control-c2)).
 
 ## 79.5 Break-glass : le compte de secours maîtrisé
 
@@ -371,11 +371,11 @@ Invoke-Command -ComputerName (Get-ADComputer -Filter *).DNSHostName -ScriptBlock
 }
 # En pratique : PowerShell DSC (Test-DscConfiguration) ou Ansible (--check) pour le drift.
 ```
-La détection de dérive est elle-même une **alerte de sécurité** : une config Sysmon modifiée hors GPO = sabotage potentiel (module 79).
+La détection de dérive est elle-même une **alerte de sécurité** : une config Sysmon modifiée hors GPO = sabotage potentiel ([module 79](#module-79-securiser-le-tooling-lui-meme)).
 
 ## 80.4 Cycle de vie du tooling
 
-- **Onboarding** d'une machine : entrée dans la bonne OU → hérite automatiquement de Sysmon + Detection Baseline + agents → apparaît dans le contrôle de couverture (M77).
+- **Onboarding** d'une machine : entrée dans la bonne OU → hérite automatiquement de Sysmon + Detection Baseline + agents → apparaît dans le contrôle de couverture ([M77](#module-77-deploiement-a-lechelle-par-gpo)).
 - **Rotation** : gMSA (auto), certificats du tooling (auto-enrollment P2), secrets.
 - **Offboarding** : désinstallation propre (GPO software → removal), révocation des délégations, nettoyage.
 - **Revue périodique** : qui est dans `G_SOC_*` et Tier 0 ? Les délégations sont-elles toujours minimales ? Les règles obsolètes retirées (P7 M71) ?
