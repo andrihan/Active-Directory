@@ -76,6 +76,33 @@
   white-space: nowrap;
 }
 
+/* --- Carte de profil (page d'accueil) --- */
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin: 1.5em 0 2em;
+  padding: 1em 1.25em;
+  border-radius: 0.4em;
+  background: var(--md-code-bg-color);
+  border-left: 0.3rem solid var(--md-primary-fg-color);
+}
+
+.profile-card-avatar {
+  flex: none;
+  font-size: 2.8rem;
+  color: var(--md-primary-fg-color);
+}
+
+.profile-card h3 {
+  margin: 0 0 0.15em;
+}
+
+.profile-card p {
+  margin: 0.3em 0 0;
+}
+
 /* --- Titres et sous-titres colorés --- */
 
 /* Bannière de titre en tête de chaque page : h1 + h2 + h3 */
