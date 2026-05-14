@@ -1,7 +1,7 @@
-site_name: Active Directory
+site_name: Documentation Infrastructure & Sécurité
 site_description: >-
-  Cours intégral sur Active Directory Domain Services : de l'installation à la
-  sécurité offensive, sur un unique lab corp.lab.local.
+  Documentation technique multi-parcours : Administration Système (Active
+  Directory), DevOps, DevSecOps et Ingénierie Cloud.
 site_url: https://cours.andriharisoa.xyz/
 docs_dir: docs
 
