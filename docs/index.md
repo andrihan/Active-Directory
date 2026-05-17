@@ -1,3 +1,13 @@
+---
+hide:
+  - navigation
+  - toc
+---
+
+<style>
+.md-header__title { display: none !important; }
+</style>
+
 # Documentation Infrastructure & Sécurité
 
 <div class="profile-card" markdown>
