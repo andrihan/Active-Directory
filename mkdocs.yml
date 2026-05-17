@@ -24,7 +24,6 @@ theme:
         icon: material/weather-sunny
         name: Passer en mode clair
   features:
-    - navigation.sections
     - navigation.indexes
     - navigation.top
     - navigation.footer
