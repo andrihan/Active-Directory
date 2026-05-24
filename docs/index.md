@@ -62,4 +62,20 @@ Ce site regroupe plusieurs parcours techniques, chacun construit comme une docum
 
     :material-clock-outline: **Bientôt disponible**
 
+-   :material-target-account:{ .lg .middle } **Red Team**
+
+    ---
+
+    Méthodologie d'engagement offensif, reconnaissance, exploitation, mouvement latéral et persistance en conditions réelles de mission.
+
+    :material-clock-outline: **Bientôt disponible**
+
+-   :material-bug-outline:{ .lg .middle } **Bug Bounty**
+
+    ---
+
+    Reconnaissance web, recherche de vulnérabilités, rédaction de rapports et méthodologie pour la chasse aux failles en programme de bug bounty.
+
+    :material-clock-outline: **Bientôt disponible**
+
 </div>
