@@ -66,7 +66,7 @@ Ce site regroupe plusieurs parcours techniques, chacun construit comme une docum
 
     ---
 
-    Méthodologie d'engagement offensif, reconnaissance, exploitation, mouvement latéral et persistance en conditions réelles de mission.
+    Simulation d'adversaire et émulation de TTPs en conditions réelles : reconnaissance, accès initial, escalade de privilèges, mouvement latéral, persistance et exfiltration, avec évaluation de la détection et de la réponse (Blue Team).
 
     :material-clock-outline: **Bientôt disponible**
 
