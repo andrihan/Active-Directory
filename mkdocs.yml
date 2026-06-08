@@ -2,7 +2,7 @@ site_name: Documentation Infrastructure & Sécurité
 site_description: >-
   Documentation technique multi-parcours : Administration Système (Active
   Directory), DevOps, DevSecOps et Ingénierie Cloud.
-site_url: https://cours.andriharisoa.xyz/
+site_url: https://docs.andriharisoa.xyz/
 docs_dir: docs
 
 theme:
