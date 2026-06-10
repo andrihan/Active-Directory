@@ -127,7 +127,7 @@
       });
       box.classList.add("ad-progress-module");
       var link = document.createElement("a");
-      link.href = m.slug + "/";
+      link.href = "/" + m.slug + "/";
       link.textContent = m.title;
       li.appendChild(box);
       li.appendChild(link);
