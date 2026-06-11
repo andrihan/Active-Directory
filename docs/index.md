@@ -18,7 +18,7 @@ hide:
 
 **Administrateur Systèmes et Sécurité**
 
-Passionné par les infrastructures et la sécurité, je conçois, durcis et exploite des environnements techniques de bout en bout. Ce site rassemble ma documentation technique, pensée comme des parcours complets et pratiques, du premier déploiement jusqu'à la maîtrise opérationnelle.
+J'aime comprendre comment les systèmes tiennent debout - et comment les faire tomber pour mieux les protéger. Ce site rassemble mes documentations, pensées comme des parcours complets et pratiques, du premier déploiement jusqu'à la maîtrise opérationnelle.
 
 </div>
 
