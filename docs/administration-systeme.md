@@ -1,4 +1,4 @@
-# Administration Système — Active Directory sur Windows Server 2022
+# Administration Système - Active Directory sur Windows Server 2022
 
 ### De l'installation à la sécurité offensive - un parcours complet en 11 modules
 
