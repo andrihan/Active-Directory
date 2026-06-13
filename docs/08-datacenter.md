@@ -1,28 +1,28 @@
-# Cours Active Directory & Windows Server — Partie 8
+# Cours Active Directory & Windows Server - Partie 8
 ## Gestion de flotte & Data Center : du fer au network-as-code
-### Windows Server 2022 — la couche physique, enfin
+### Windows Server 2022 - la couche physique, enfin
 
 ---
 
-> **Prérequis** : Parties 1 à 7-bis. Tout ce qu'on a construit tournait *sur du matériel, dans un rack, relié à un réseau* — sans jamais le nommer. Cette partie comble ce trou : le **fer, l'électron et le paquet**. On ne descend pas là pour devenir électricien ou câbleur ; on descend pour **comprendre, dimensionner, sécuriser et automatiser** la couche physique — et voir qu'elle sous-tend ta résilience (P3), ton tiering (P4/P7) et ta Trajectoire 3.
+> **Prérequis** : Parties 1 à 7-bis. Tout ce qu'on a construit tournait *sur du matériel, dans un rack, relié à un réseau* - sans jamais le nommer. Cette partie comble ce trou : le **fer, l'électron et le paquet**. On ne descend pas là pour devenir électricien ou câbleur ; on descend pour **comprendre, dimensionner, sécuriser et automatiser** la couche physique - et voir qu'elle sous-tend ta résilience (P3), ton tiering (P4/P7) et ta Trajectoire 3.
 >
-> **Posture (casquette Google/SRE)** : à l'échelle, on ne materne pas un serveur, on **gère une flotte**. Le matériel tombe en permanence — c'est un fait statistique, pas un incident. La bonne architecture **absorbe la panne** au lieu de la subir : la couche logicielle encaisse le disque mort, le serveur défaillant, le switch qui redémarre. On ne se lève pas à 3h pour un ventilateur HS ; un ticket de remplacement se crée tout seul. Ta vraie compétence ici n'est pas de cliquer dans iDRAC — c'est le **modèle *cattle* automatisé**, transférable à l'on-prem comme au cloud (où l'instance est le même bétail, en plus jetable).
+> **Posture (casquette Google/SRE)** : à l'échelle, on ne materne pas un serveur, on **gère une flotte**. Le matériel tombe en permanence - c'est un fait statistique, pas un incident. La bonne architecture **absorbe la panne** au lieu de la subir : la couche logicielle encaisse le disque mort, le serveur défaillant, le switch qui redémarre. On ne se lève pas à 3h pour un ventilateur HS ; un ticket de remplacement se crée tout seul. Ta vraie compétence ici n'est pas de cliquer dans iDRAC - c'est le **modèle *cattle* automatisé**, transférable à l'on-prem comme au cloud (où l'instance est le même bétail, en plus jetable).
 >
 > **Fil rouge** : *comprendre le physique pour bien concevoir, tout automatiser, tout segmenter, tout versionner.* Le raccordement (dual-homing, OOB séparé) sert la **résilience** ; la segmentation sert le **tiering** ; l'automatisation sert le **DevSecOps**.
 
 ## Structure (12 modules, 3 blocs)
 
-- **Bloc A — Le physique** : 81 Facilities · 82 Connectivité serveur · 83 Fabric réseau
-- **Bloc B — La flotte automatisée** : 84 Pets vs cattle · 85 BMC/Redfish · 86 Provisioning bare-metal · 87 Firmware as code · 88 CMDB/DCIM · 89 Télémétrie matérielle
-- **Bloc C — Sécurité & cycle de vie** : 90 Segmentation & sécurité du management · 91 Cycle de vie matériel · 92 Flotte & réseau as code
+- **Bloc A - Le physique** : 81 Facilities · 82 Connectivité serveur · 83 Fabric réseau
+- **Bloc B - La flotte automatisée** : 84 Pets vs cattle · 85 BMC/Redfish · 86 Provisioning bare-metal · 87 Firmware as code · 88 CMDB/DCIM · 89 Télémétrie matérielle
+- **Bloc C - Sécurité & cycle de vie** : 90 Segmentation & sécurité du management · 91 Cycle de vie matériel · 92 Flotte & réseau as code
 
 ---
 
-# BLOC A — LE PHYSIQUE
+# BLOC A - LE PHYSIQUE
 
 ---
 
-# Module 81 — Fondamentaux du data center (facilities)
+# Module 81 - Fondamentaux du data center (facilities)
 
 ## 81.1 Pourquoi un ingénieur logiciel doit connaître l'électron
 
@@ -42,7 +42,7 @@ flowchart TD
 Notions à maîtriser :
 
 - **UPS (onduleur)** : absorbe les micro-coupures et tient sur batterie le temps que le **groupe électrogène** prenne le relais.
-- **PDU** : la multiprise intelligente du rack (souvent mesurée/pilotable en réseau — donc un objet à surveiller *et* à sécuriser, cf. [module 90](#module-90-segmentation-securite-de-la-couche-management)).
+- **PDU** : la multiprise intelligente du rack (souvent mesurée/pilotable en réseau - donc un objet à surveiller *et* à sécuriser, cf. [module 90](#module-90-segmentation-securite-de-la-couche-management)).
 - **Dual-feed A/B** : deux chaînes électriques **indépendantes** (deux UPS, deux PDU). Un serveur de prod a **deux alimentations (PSU)**, une sur A, une sur B.
 
 ## 81.3 La redondance électrique : N, N+1, 2N
@@ -56,7 +56,7 @@ C'est le vocabulaire qu'on te demandera :
 | **2N** | Chaîne entièrement doublée, indépendante | Deux infrastructures complètes (A et B) |
 | **2N+1** | Doublée + un secours par côté | Maximal (banques, Tier IV) |
 
-> **La règle d'or du branchement HA** : tes deux nœuds de cluster (P3), tes deux DC, tes deux ToR ([module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) doivent tirer leur alimentation de **côtés opposés (A et B)**. Un serveur avec deux PSU branchées sur le **même** PDU n'a **aucune** redondance électrique réelle — erreur classique et coûteuse.
+> **La règle d'or du branchement HA** : tes deux nœuds de cluster (P3), tes deux DC, tes deux ToR ([module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) doivent tirer leur alimentation de **côtés opposés (A et B)**. Un serveur avec deux PSU branchées sur le **même** PDU n'a **aucune** redondance électrique réelle - erreur classique et coûteuse.
 
 ## 81.4 Le refroidissement
 
@@ -74,7 +74,7 @@ PUE = Énergie totale consommée par le DC / Énergie consommée par l'IT seule
 ```
 - PUE = 2,0 → pour 1 W utile à l'IT, 1 W est « gaspillé » (clim, pertes). Médiocre.
 - PUE ≈ 1,1–1,2 → hyperscalers (Google, etc.), excellent.
-Le PUE pilote les **coûts** et l'**empreinte carbone** — donc les décisions d'architecture (densité, refroidissement liquide, placement géographique). Un ingénieur cloud/infra doit savoir ce que ça signifie.
+Le PUE pilote les **coûts** et l'**empreinte carbone** - donc les décisions d'architecture (densité, refroidissement liquide, placement géographique). Un ingénieur cloud/infra doit savoir ce que ça signifie.
 
 ## 81.6 Espace, mécanique, tiers
 
@@ -89,7 +89,7 @@ Le PUE pilote les **coûts** et l'**empreinte carbone** — donc les décisions 
 | III | N+1, **maintenable sans coupure** | 99,982 % | ~1,6 h |
 | IV | **2N+1, tolérant aux pannes** | 99,995 % | ~26 min |
 
-> **Le lien avec ta P3** : un Tier ne remplace pas ta HA logicielle, il la **complète**. Promettre un RTO/SLA de « 5 neuf » (P3 [M23](03-resilience.md#module-23-concepts-de-resilience)) sur un DC Tier II est incohérent — le plancher physique ne suit pas. L'architecte aligne SLA logiciel *et* Tier physique.
+> **Le lien avec ta P3** : un Tier ne remplace pas ta HA logicielle, il la **complète**. Promettre un RTO/SLA de « 5 neuf » (P3 [M23](03-resilience.md#module-23-concepts-de-resilience)) sur un DC Tier II est incohérent - le plancher physique ne suit pas. L'architecte aligne SLA logiciel *et* Tier physique.
 
 ## 81.7 Sûreté physique (dans le modèle de menace)
 
@@ -97,7 +97,7 @@ Angle DevSecOps souvent oublié : **l'accès physique bat presque toutes tes dé
 
 - Contrôle d'accès (badge, biométrie, mantrap, journalisation).
 - Détection/extinction incendie (pré-action, agents propres).
-- **Chiffrement au repos (BitLocker + TPM)** pour que le vol d'un disque ne livre pas les données — le pont entre facilities et ta sécurité logique.
+- **Chiffrement au repos (BitLocker + TPM)** pour que le vol d'un disque ne livre pas les données - le pont entre facilities et ta sécurité logique.
 - Le port BMC/console physiquement protégé ([module 90](#module-90-segmentation-securite-de-la-couche-management)).
 
 ## 81.8 Exercice n°68
@@ -108,11 +108,11 @@ Angle DevSecOps souvent oublié : **l'accès physique bat presque toutes tes dé
 
 ---
 
-# Module 82 — Connectivité physique : comment chaque serveur se branche
+# Module 82 - Connectivité physique : comment chaque serveur se branche
 
 ## 82.1 Le module que tu attendais
 
-« Gérer un serveur » sans savoir **comment il se raccorde au réseau**, c'est parler de HA sans parler d'électricité. On formalise le raccordement — et tu verras que le **réseau heartbeat séparé** de ta Partie 3 était déjà de la conception de câblage résilient.
+« Gérer un serveur » sans savoir **comment il se raccorde au réseau**, c'est parler de HA sans parler d'électricité. On formalise le raccordement - et tu verras que le **réseau heartbeat séparé** de ta Partie 3 était déjà de la conception de câblage résilient.
 
 ## 82.2 Les interfaces d'un serveur de production
 
@@ -121,10 +121,10 @@ Un serveur DC typique n'a pas « une » carte réseau, mais **trois familles** :
 | Interface | Rôle | Débit typique | Réseau |
 |---|---|---|---|
 | **NIC production** (×2) | Trafic applicatif/clients | 10 / **25** GbE | Data (VLAN prod) |
-| **NIC management (BMC)** | iDRAC/iLO — piloter la machine | 1 GbE (dédiée) | **Out-of-band (isolé)** |
+| **NIC management (BMC)** | iDRAC/iLO - piloter la machine | 1 GbE (dédiée) | **Out-of-band (isolé)** |
 | **NIC stockage** (opt.) | iSCSI / RDMA (S2D, P3) | 25 / 100 GbE | Storage (souvent RDMA) |
 
-> **Règle d'or n°1** : la **NIC de management (BMC) part TOUJOURS sur un réseau out-of-band (OOB) séparé**, jamais sur le réseau data. Le BMC peut allumer/éteindre/réinstaller la machine ([module 85](#module-85-out-of-band-management-bmc-redfish)) — l'exposer sur le réseau de prod, c'est offrir les clés physiques à quiconque atteint ce réseau. On y revient au [module 90](#module-90-segmentation-securite-de-la-couche-management).
+> **Règle d'or n°1** : la **NIC de management (BMC) part TOUJOURS sur un réseau out-of-band (OOB) séparé**, jamais sur le réseau data. Le BMC peut allumer/éteindre/réinstaller la machine ([module 85](#module-85-out-of-band-management-bmc-redfish)) - l'exposer sur le réseau de prod, c'est offrir les clés physiques à quiconque atteint ce réseau. On y revient au [module 90](#module-90-segmentation-securite-de-la-couche-management).
 
 ## 82.3 Le câblage : cuivre, fibre, DAC
 
@@ -148,8 +148,8 @@ flowchart TB
 
 Les deux NIC production vont vers **deux ToR distincts** → si un switch (ou un lien, ou un transceiver) tombe, l'autre prend le relais. C'est le pendant réseau du dual-feed électrique ([M81](#module-81-fondamentaux-du-data-center-facilities)) et du cluster (P3). Deux modes d'agrégation :
 
-- **LACP (802.3ad)** — agrégation active/active négociée avec le switch. Débit cumulé + résilience. Nécessite que les deux ToR forment un **MLAG** ([module 83](#module-83-larchitecture-reseau-du-data-center-fabric)) pour présenter un LAG unique.
-- **Actif/passif (switch-independent)** — un lien actif, l'autre en secours. Aucune config switch requise, plus simple, moins de débit.
+- **LACP (802.3ad)** - agrégation active/active négociée avec le switch. Débit cumulé + résilience. Nécessite que les deux ToR forment un **MLAG** ([module 83](#module-83-larchitecture-reseau-du-data-center-fabric)) pour présenter un LAG unique.
+- **Actif/passif (switch-independent)** - un lien actif, l'autre en secours. Aucune config switch requise, plus simple, moins de débit.
 
 ## 82.5 Côté Windows : NIC teaming & SET
 
@@ -171,7 +171,7 @@ Add-VMNetworkAdapter -ManagementOS -Name "Storage" -SwitchName "vSwitch-SET"
 Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "Cluster" -Access -VlanId 20
 Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "Storage" -Access -VlanId 30
 ```
-> **Point d'ingénieur** : sous Hyper-V/S2D (P3), on utilise **SET**, pas LBFO (déprécié pour ce cas et incompatible RDMA). SET converge les cartes physiques et sépare les flux (management/cluster/stockage) en **vNIC + VLAN** sur le même bond physique — exactement la séparation logique de ta Partie 3, posée proprement.
+> **Point d'ingénieur** : sous Hyper-V/S2D (P3), on utilise **SET**, pas LBFO (déprécié pour ce cas et incompatible RDMA). SET converge les cartes physiques et sépare les flux (management/cluster/stockage) en **vNIC + VLAN** sur le même bond physique - exactement la séparation logique de ta Partie 3, posée proprement.
 
 ## 82.6 Exercice n°69
 1. Schématise un serveur dual-homé vers ToR-A/ToR-B, avec BMC sur OOB et dual-PSU A/B. Marque chaque SPOF éliminé.
@@ -181,7 +181,7 @@ Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "Storage" -Access -
 
 ---
 
-# Module 83 — L'architecture réseau du data center (fabric)
+# Module 83 - L'architecture réseau du data center (fabric)
 
 ## 83.1 Pourquoi le vieux modèle est mort
 
@@ -212,7 +212,7 @@ Chaque leaf est relié à **chaque** spine (jamais leaf-à-leaf, jamais spine-à
 
 Propriétés fondamentales :
 
-- Chaque **leaf** (= le ToR du [module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) est connecté à **tous les spines** — jamais leaf-à-leaf, jamais spine-à-spine.
+- Chaque **leaf** (= le ToR du [module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) est connecté à **tous les spines** - jamais leaf-à-leaf, jamais spine-à-spine.
 - **Tout serveur est à exactement 2 sauts de tout autre** (leaf → spine → leaf) : latence prévisible, débit est-ouest élevé.
 - **Scalabilité horizontale** : besoin de plus de bande passante ? on ajoute un spine. Plus de serveurs ? on ajoute un leaf.
 - **ECMP** (Equal-Cost Multi-Path) : tous les liens sont **actifs** (plus de STP qui en bloque la moitié).
@@ -220,7 +220,7 @@ Propriétés fondamentales :
 ## 83.3 L2, L3, VLAN et trunking
 
 - **Couche 2 (L2)** : commutation par adresse MAC, au sein d'un même domaine de diffusion.
-- **VLAN (802.1Q)** : segmenter un switch physique en réseaux logiques isolés (prod, management, stockage, DMZ). Un **trunk** transporte plusieurs VLAN sur un même lien (tag 802.1Q) — c'est ce qui relie serveur↔ToR quand le serveur porte plusieurs VLAN (cf. le SET/VLAN du [module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)).
+- **VLAN (802.1Q)** : segmenter un switch physique en réseaux logiques isolés (prod, management, stockage, DMZ). Un **trunk** transporte plusieurs VLAN sur un même lien (tag 802.1Q) - c'est ce qui relie serveur↔ToR quand le serveur porte plusieurs VLAN (cf. le SET/VLAN du [module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)).
 - **Couche 3 (L3)** : routage par adresse IP entre segments.
 - **Tendance moderne** : pousser le **routage L3 au plus près (jusqu'au leaf, voire au serveur)** pour limiter les grands domaines L2 (fragiles, sujets aux tempêtes de broadcast).
 
@@ -245,11 +245,11 @@ Contre-intuitif au début : **BGP** (le protocole d'Internet) est devenu le stan
 Pour découpler le réseau **logique** du réseau **physique** (indispensable en cloud/multi-tenant) :
 
 - **VXLAN** : encapsule du L2 dans du L3 (UDP) → on étend un VLAN au-dessus d'un fabric routé, à travers tout le DC, sans grand domaine L2 physique. Le VLAN devient un **VNI** (VXLAN Network Identifier), 16 M possibles vs 4094 VLAN.
-- **EVPN** (via BGP) : le **plan de contrôle** de VXLAN — distribue les adresses MAC/IP proprement, remplace le « flood-and-learn ». **VXLAN/EVPN** est le socle du DC moderne et du SDN.
+- **EVPN** (via BGP) : le **plan de contrôle** de VXLAN - distribue les adresses MAC/IP proprement, remplace le « flood-and-learn ». **VXLAN/EVPN** est le socle du DC moderne et du SDN.
 
 ## 83.6 Redondance des switches : MLAG (et l'adieu à STP)
 
-Comment un serveur dual-homé ([module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) voit-il **deux ToR comme un seul** pour faire du LACP actif/actif ? Le **MLAG** (Multi-Chassis Link Aggregation) : deux switches ToR se présentent comme un LAG unique au serveur. Résultat : les deux liens serveur sont **actifs**, et la perte d'un ToR est transparente — **sans Spanning Tree** qui bloquerait un lien. (Noms vendeurs : vPC chez Cisco, MLAG chez Arista, etc.)
+Comment un serveur dual-homé ([module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) voit-il **deux ToR comme un seul** pour faire du LACP actif/actif ? Le **MLAG** (Multi-Chassis Link Aggregation) : deux switches ToR se présentent comme un LAG unique au serveur. Résultat : les deux liens serveur sont **actifs**, et la perte d'un ToR est transparente - **sans Spanning Tree** qui bloquerait un lien. (Noms vendeurs : vPC chez Cisco, MLAG chez Arista, etc.)
 
 > **La boucle bouclée avec le [module 82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)** : serveur → bond LACP → **MLAG** de deux ToR → chaque ToR = un leaf → relié à tous les spines. Voilà le chemin complet, physiquement redondant de bout en bout, d'un paquet qui sort de ton serveur Hyper-V.
 
@@ -261,11 +261,11 @@ Comment un serveur dual-homé ([module 82](#module-82-connectivite-physique-comm
 
 ---
 
-# BLOC B — LA FLOTTE AUTOMATISÉE
+# BLOC B - LA FLOTTE AUTOMATISÉE
 
 ---
 
-# Module 84 — Philosophie : pets vs cattle
+# Module 84 - Philosophie : pets vs cattle
 
 ## 84.1 Le changement de mentalité fondateur
 
@@ -279,11 +279,11 @@ C'est **le** module conceptuel de toute la partie. Deux façons opposées de tra
 | Provisioning | Des heures/jours à la main | Minutes, automatique |
 | Échelle | Ne scale pas (limité par l'humain) | Scale à l'infini |
 
-**Le modèle cattle** : les serveurs sont **interchangeables et jetables**. Un serveur défaillant n'est pas réparé en urgence — il est **sorti et remplacé**, sa charge ayant déjà basculé (P3). C'est la seule façon de gérer des centaines/milliers de machines sans armée d'admins.
+**Le modèle cattle** : les serveurs sont **interchangeables et jetables**. Un serveur défaillant n'est pas réparé en urgence - il est **sorti et remplacé**, sa charge ayant déjà basculé (P3). C'est la seule façon de gérer des centaines/milliers de machines sans armée d'admins.
 
 ## 84.2 Design-for-failure : la panne est normale
 
-À l'échelle, le matériel tombe **en permanence** — c'est statistique. Sur 1000 serveurs, il y a toujours quelque chose de cassé *maintenant*. La conséquence Google/SRE :
+À l'échelle, le matériel tombe **en permanence** - c'est statistique. Sur 1000 serveurs, il y a toujours quelque chose de cassé *maintenant*. La conséquence Google/SRE :
 
 - On **conçoit pour que la panne d'un composant soit un non-événement** : la couche logicielle (clustering P3, réplication P1, load balancing) absorbe.
 - On ne se lève pas la nuit pour un disque : la **redondance** encaisse, un **ticket de remplacement** se génère, le remplacement se fait en journée, en lot.
@@ -302,11 +302,11 @@ Le pet n'est pas *toujours* un péché : une base de données monolithique histo
 
 ---
 
-# Module 85 — Out-of-band management : BMC & Redfish
+# Module 85 - Out-of-band management : BMC & Redfish
 
 ## 85.1 Piloter la machine sans la toucher
 
-Le **BMC** (Baseboard Management Controller) est un **micro-ordinateur autonome intégré à la carte mère**, avec son propre processeur, sa RAM, son OS et son port réseau — **indépendant du serveur principal**. Il fonctionne même serveur éteint (tant qu'il y a du courant). Noms commerciaux : **iDRAC** (Dell), **iLO** (HPE), **XCC** (Lenovo), **IPMI** (le vieux standard générique).
+Le **BMC** (Baseboard Management Controller) est un **micro-ordinateur autonome intégré à la carte mère**, avec son propre processeur, sa RAM, son OS et son port réseau - **indépendant du serveur principal**. Il fonctionne même serveur éteint (tant qu'il y a du courant). Noms commerciaux : **iDRAC** (Dell), **iLO** (HPE), **XCC** (Lenovo), **IPMI** (le vieux standard générique).
 
 Ce qu'il permet, **à distance, sans présence physique** :
 
@@ -318,7 +318,7 @@ Ce qu'il permet, **à distance, sans présence physique** :
 
 C'est ce qui rend le modèle cattle possible : provisionner, réparer, réinstaller **1000 serveurs sans jamais entrer dans la salle**.
 
-## 85.2 IPMI (l'ancien) — commandes ipmitool
+## 85.2 IPMI (l'ancien) - commandes ipmitool
 
 ```bash
 # Depuis une station de management (réseau OOB). -H = IP du BMC, -U/-P = creds BMC
@@ -335,7 +335,7 @@ ipmitool -I lanplus -H 10.0.0.42 -U admin -P '***' chassis bootdev pxe
 ipmitool -I lanplus -H 10.0.0.42 -U admin -P '***' sel list
 ```
 
-## 85.3 Redfish (le standard moderne) — API REST
+## 85.3 Redfish (le standard moderne) - API REST
 
 **Redfish** (DMTF) remplace IPMI par une **API REST/JSON** sur HTTPS : scriptable, sécurisée, uniforme entre constructeurs. C'est **la** bonne façon d'automatiser le matériel aujourd'hui.
 
@@ -361,7 +361,7 @@ curl -sk -u admin:'***' -X PATCH -H 'Content-Type: application/json' \
 curl -sk -u admin:'***' https://10.0.0.42/redfish/v1/Chassis/System.Embedded.1/Thermal | jq '.Temperatures[].ReadingCelsius'
 ```
 
-> **Pourquoi Redfish > IPMI** : REST/JSON (scriptable, intégrable en Ansible/Terraform — [module 92](#module-92-flotte-reseau-as-code-projet-final)), HTTPS (chiffré), modèle de données riche et normalisé, versionné. IPMI est fonctionnel mais vieillissant et cryptographiquement faible. **Vise Redfish**, garde ipmitool pour le legacy.
+> **Pourquoi Redfish > IPMI** : REST/JSON (scriptable, intégrable en Ansible/Terraform - [module 92](#module-92-flotte-reseau-as-code-projet-final)), HTTPS (chiffré), modèle de données riche et normalisé, versionné. IPMI est fonctionnel mais vieillissant et cryptographiquement faible. **Vise Redfish**, garde ipmitool pour le legacy.
 
 ## 85.4 Exercice n°72
 1. (Si accès à un serveur avec BMC / un simulateur Redfish comme `DMTF/Redfish-Mockup-Server`) : récupère l'inventaire et l'état d'alimentation en Redfish.
@@ -371,11 +371,11 @@ curl -sk -u admin:'***' https://10.0.0.42/redfish/v1/Chassis/System.Embedded.1/T
 
 ---
 
-# Module 86 — Provisioning bare-metal
+# Module 86 - Provisioning bare-metal
 
 ## 86.1 Le graal : rack → boot → OS → config, sans les mains
 
-Le modèle cattle exige qu'un serveur neuf devienne opérationnel **sans intervention manuelle**. Tu le racks, tu le câbles ([M82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)), tu l'alimentes — il démarre sur le réseau, s'installe et se configure tout seul. C'est le **provisioning bare-metal automatisé**.
+Le modèle cattle exige qu'un serveur neuf devienne opérationnel **sans intervention manuelle**. Tu le racks, tu le câbles ([M82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)), tu l'alimentes - il démarre sur le réseau, s'installe et se configure tout seul. C'est le **provisioning bare-metal automatisé**.
 
 ## 86.2 Le socle : PXE / iPXE
 
@@ -387,7 +387,7 @@ Le modèle cattle exige qu'un serveur neuf devienne opérationnel **sans interve
 4. iPXE charge un noyau + une image d'installation (souvent via HTTP, plus rapide/robuste que TFTP)
 5. L'installeur se déroule sans intervention (réponse automatisée, §86.4)
 ```
-**iPXE** (le PXE moderne) sait booter en **HTTP/HTTPS**, scripter la logique (« si ce MAC → cette image »), et chaîner — bien plus puissant que le PXE d'origine.
+**iPXE** (le PXE moderne) sait booter en **HTTP/HTTPS**, scripter la logique (« si ce MAC → cette image »), et chaîner - bien plus puissant que le PXE d'origine.
 
 ```bash
 # Exemple de config DHCP (isc-dhcp / Kea) orientant vers iPXE
@@ -402,7 +402,7 @@ if exists user-class and option user-class = "iPXE" {
 ```
 ```ipxe
 #!ipxe
-# boot.ipxe — logique de démarrage réseau
+# boot.ipxe - logique de démarrage réseau
 dhcp
 # Choisir l'image selon l'architecture / le MAC / un inventaire (NetBox, M88)
 kernel http://10.0.0.10/images/winpe/boot.wim
@@ -432,13 +432,13 @@ boot
   </component>
 </settings>
 ```
-> **Idéal** : le compte de jonction est **délégué** (droit de créer des objets ordinateur dans l'OU cible seulement — rappel P1 [M6](01-fondations.md#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou).6 / P7-bis [M78](07-bis-gouvernance.md#module-78-identites-comptes-de-service-du-tooling)), **jamais** Domain Admin. Et la machine atterrit directement dans la bonne OU → elle **hérite** de Sysmon + Detection Baseline (P7-bis [M77](07-bis-gouvernance.md#module-77-deploiement-a-lechelle-par-gpo)) dès le premier boot. Le provisioning et la gouvernance se rejoignent.
+> **Idéal** : le compte de jonction est **délégué** (droit de créer des objets ordinateur dans l'OU cible seulement - rappel P1 [M6](01-fondations.md#module-6-objets-ad-utilisateurs-groupes-ordinateurs-ou).6 / P7-bis [M78](07-bis-gouvernance.md#module-78-identites-comptes-de-service-du-tooling)), **jamais** Domain Admin. Et la machine atterrit directement dans la bonne OU → elle **hérite** de Sysmon + Detection Baseline (P7-bis [M77](07-bis-gouvernance.md#module-77-deploiement-a-lechelle-par-gpo)) dès le premier boot. Le provisioning et la gouvernance se rejoignent.
 
 ## 86.4 Les orchestrateurs bare-metal modernes (mixte/Linux)
 
 Pour gérer une flotte hétérogène **as-a-service** :
 
-- **MAAS** (Metal-as-a-Service, Canonical) : transforme le bare-metal en « cloud privé » — commissioning automatique, déploiement d'OS à la demande, API.
+- **MAAS** (Metal-as-a-Service, Canonical) : transforme le bare-metal en « cloud privé » - commissioning automatique, déploiement d'OS à la demande, API.
 - **Foreman** : provisioning + gestion de configuration (Puppet/Ansible), inventaire.
 - **Tinkerbell** (CNCF) : provisioning bare-metal cloud-native, orienté workflow.
 - **Cobbler** : le vétéran (PXE + kickstart) pour le monde Linux/Red Hat.
@@ -451,11 +451,11 @@ Pour gérer une flotte hétérogène **as-a-service** :
 
 ---
 
-# Module 87 — Firmware & BIOS as code
+# Module 87 - Firmware & BIOS as code
 
 ## 87.1 Le firmware : la couche qu'on oublie, et qui fait mal
 
-Sous l'OS vit le **firmware** : BIOS/UEFI, firmware du BMC, des NIC, des contrôleurs de stockage, des disques. On l'ignore jusqu'à ce qu'il cause : instabilités inexplicables, incompatibilités (S2D refuse un firmware non certifié — rappel P3), **et failles de sécurité** (un implant firmware survit à la réinstallation de l'OS). Le gérer **comme du code** est une exigence de stabilité *et* de sécurité.
+Sous l'OS vit le **firmware** : BIOS/UEFI, firmware du BMC, des NIC, des contrôleurs de stockage, des disques. On l'ignore jusqu'à ce qu'il cause : instabilités inexplicables, incompatibilités (S2D refuse un firmware non certifié - rappel P3), **et failles de sécurité** (un implant firmware survit à la réinstallation de l'OS). Le gérer **comme du code** est une exigence de stabilité *et* de sécurité.
 
 ## 87.2 Le problème de la dérive de firmware
 
@@ -466,7 +466,7 @@ Sur une flotte, les serveurs arrivent avec des versions de firmware **différent
 - **Dell** : OpenManage Enterprise, `racadm`, **Redfish** (`UpdateService`), catalogues DSU.
 - **HPE** : OneView, iLO, **SPP** (Service Pack for ProLiant), Redfish.
 - **Lenovo** : XClarity.
-- **Standard** : **Redfish `UpdateService`** — pousser une image firmware par API, uniformément, multi-constructeur.
+- **Standard** : **Redfish `UpdateService`** - pousser une image firmware par API, uniformément, multi-constructeur.
 
 ```bash
 # Redfish : appliquer une image firmware (SimpleUpdate)
@@ -478,14 +478,14 @@ curl -sk -u admin:'***' -X POST -H 'Content-Type: application/json' \
 curl -sk -u admin:'***' https://10.0.0.42/redfish/v1/UpdateService/FirmwareInventory | jq .
 ```
 ```bash
-# racadm (Dell) — version BIOS + mise à jour depuis un partage
+# racadm (Dell) - version BIOS + mise à jour depuis un partage
 racadm -r 10.0.0.42 -u admin -p '***' get BIOS.SysInformation.SystemBiosVersion
 racadm -r 10.0.0.42 -u admin -p '***' update -f bios.exe -l //10.0.0.10/fw
 ```
 
 ## 87.4 Firmware as code
 
-L'approche d'ingénieur : la **version cible de firmware par modèle** est déclarée dans un dépôt Git, un pipeline ([module 92](#module-92-flotte-reseau-as-code-projet-final)) lit l'inventaire Redfish de chaque serveur, **compare à la cible**, et applique/planifie les mises à jour sur les machines dérivées — le tout en fenêtre de maintenance, un rack à la fois (design-for-failure, la charge bascule avant). C'est du **config management appliqué au métal**.
+L'approche d'ingénieur : la **version cible de firmware par modèle** est déclarée dans un dépôt Git, un pipeline ([module 92](#module-92-flotte-reseau-as-code-projet-final)) lit l'inventaire Redfish de chaque serveur, **compare à la cible**, et applique/planifie les mises à jour sur les machines dérivées - le tout en fenêtre de maintenance, un rack à la fois (design-for-failure, la charge bascule avant). C'est du **config management appliqué au métal**.
 
 ## 87.5 Exercice n°74
 1. Via Redfish, lis l'inventaire firmware d'un serveur (ou d'un mock) et repère les composants.
@@ -494,14 +494,14 @@ L'approche d'ingénieur : la **version cible de firmware par modèle** est décl
 
 ---
 
-# Module 88 — Inventaire, CMDB & DCIM
+# Module 88 - Inventaire, CMDB & DCIM
 
 ## 88.1 La source de vérité : tu ne gères pas ce que tu ne connais pas
 
 À l'échelle, la première question est : *qu'ai-je, où, dans quel état ?* Sans **source de vérité** fiable, l'automatisation provisionne à l'aveugle. On distingue :
 
 - **CMDB** (Configuration Management Database) : l'inventaire logique des actifs et de leurs relations.
-- **DCIM** (Data Center Infrastructure Management) : le physique — racks, U, alimentation, thermique, câblage.
+- **DCIM** (Data Center Infrastructure Management) : le physique - racks, U, alimentation, thermique, câblage.
 
 ## 88.2 NetBox : la source de vérité de l'infra moderne
 
@@ -525,7 +525,7 @@ curl -s -H "Authorization: Token $NETBOX_TOKEN" \
 
 ## 88.3 Le principe « single source of truth »
 
-**Une** seule source fait autorité (NetBox), tout le reste en **découle** (config switch, DNS, monitoring, provisioning). On ne configure jamais un switch à la main *puis* on met NetBox à jour — on **décrit l'intention dans NetBox** et on **génère** la réalité. Toute divergence entre NetBox et le terrain = dérive à corriger (drift, [module 92](#module-92-flotte-reseau-as-code-projet-final)).
+**Une** seule source fait autorité (NetBox), tout le reste en **découle** (config switch, DNS, monitoring, provisioning). On ne configure jamais un switch à la main *puis* on met NetBox à jour - on **décrit l'intention dans NetBox** et on **génère** la réalité. Toute divergence entre NetBox et le terrain = dérive à corriger (drift, [module 92](#module-92-flotte-reseau-as-code-projet-final)).
 
 ## 88.4 Exercice n°75
 1. (En lab, NetBox en conteneur) modélise 1 site, 1 rack, 2 serveurs, 2 switches, et le **câblage** entre eux.
@@ -535,11 +535,11 @@ curl -s -H "Authorization: Token $NETBOX_TOKEN" \
 
 ---
 
-# Module 89 — Télémétrie matérielle
+# Module 89 - Télémétrie matérielle
 
 ## 89.1 Détecter la panne matérielle avant qu'elle ne frappe
 
-Le modèle cattle ne veut pas dire « ignorer le matériel » — il veut dire **détecter et remplacer proprement**. Pour ça, il faut de la **télémétrie matérielle** : température, ventilateurs, alimentation, **SMART des disques**, **erreurs ECC mémoire**, état des composants. L'objectif est la **détection prédictive** : un disque qui multiplie les secteurs réalloués (SMART) *va* tomber — on le remplace avant, en journée, sans incident.
+Le modèle cattle ne veut pas dire « ignorer le matériel » - il veut dire **détecter et remplacer proprement**. Pour ça, il faut de la **télémétrie matérielle** : température, ventilateurs, alimentation, **SMART des disques**, **erreurs ECC mémoire**, état des composants. L'objectif est la **détection prédictive** : un disque qui multiplie les secteurs réalloués (SMART) *va* tomber - on le remplace avant, en journée, sans incident.
 
 ## 89.2 Les sources et le pipeline
 
@@ -561,7 +561,7 @@ Exporters Prometheus dédiés au matériel :
 - **`snmp_exporter`** : switches, PDU, onduleurs.
 
 ```yaml
-# prometheus.yml — scraper les BMC via redfish_exporter
+# prometheus.yml - scraper les BMC via redfish_exporter
 scrape_configs:
   - job_name: 'redfish-bmc'
     static_configs:
@@ -586,7 +586,7 @@ groups:
         for: 1h
         labels: { severity: warning }
         annotations:
-          summary: "Disque en pré-défaillance sur {{ $labels.instance }} — planifier RMA"
+          summary: "Disque en pré-défaillance sur {{ $labels.instance }} - planifier RMA"
       - alert: MemoryECCErrors
         expr: increase(node_edac_correctable_errors_total[1h]) > 100
         labels: { severity: warning }
@@ -599,7 +599,7 @@ groups:
 
 - **4 signaux d'or (P4 [M35](04-exploitation-sre.md#module-35-pratiques-sre-appliquees-a-un-parc-windows))** : la **saturation** inclut le thermique et l'usure matérielle. La télémétrie DC alimente tes SLI.
 - **SOC (P7)** : un capteur BMC qui devient injoignable, un flash firmware non planifié, un power cycle inattendu → **signaux de sécurité** (accès physique/BMC hostile). On route la télémétrie matérielle **aussi** vers le SIEM.
-- **Design-for-failure ([M84](#module-84-philosophie-pets-vs-cattle))** : l'alerte SMART ne réveille personne — elle **crée un ticket de remplacement**. Le matériel est du bétail surveillé, pas materné.
+- **Design-for-failure ([M84](#module-84-philosophie-pets-vs-cattle))** : l'alerte SMART ne réveille personne - elle **crée un ticket de remplacement**. Le matériel est du bétail surveillé, pas materné.
 
 ## 89.4 Exercice n°76
 1. Monte `redfish_exporter` (ou `ipmi_exporter`) + Prometheus en lab, scrape un BMC/mock.
@@ -609,11 +609,11 @@ groups:
 
 ---
 
-# BLOC C — SÉCURITÉ & CYCLE DE VIE
+# BLOC C - SÉCURITÉ & CYCLE DE VIE
 
 ---
 
-# Module 90 — Segmentation & sécurité de la couche management
+# Module 90 - Segmentation & sécurité de la couche management
 
 ## 90.1 Le BMC : ton plus grand pouvoir, ta plus grande surface d'attaque
 
@@ -629,7 +629,7 @@ Le BMC ([M85](#module-85-out-of-band-management-bmc-redfish)) peut tout : allume
 
 ```bash
 # Redfish : créer un compte dédié, supprimer/désactiver les comptes par défaut, forcer HTTPS
-# (via l'API AccountService — jamais laisser admin/calvin, root/root, etc.)
+# (via l'API AccountService - jamais laisser admin/calvin, root/root, etc.)
 curl -sk -u admin:'***' -X PATCH -H 'Content-Type: application/json' \
   -d '{"Password":"<long-aléatoire>"}' \
   https://10.0.0.42/redfish/v1/AccountService/Accounts/2
@@ -639,7 +639,7 @@ Checklist de durcissement BMC :
 - **Changer tous les identifiants par défaut** (idcalvin/root…), comptes **individuels** (pas de compte partagé), idéalement fédérés à AD/LDAP avec MFA quand le BMC le supporte.
 - **HTTPS/Redfish uniquement**, désactiver IPMI-over-LAN si non nécessaire (protocole faible), désactiver les services legacy.
 - **Réseau OOB isolé** (VLAN/VRF dédié), ACL stricte, accès via **bastion Tier 0** seulement.
-- **Firmware BMC à jour** ([M87](#module-87-firmware-bios-as-code)) — c'est le composant le plus exposé.
+- **Firmware BMC à jour** ([M87](#module-87-firmware-bios-as-code)) - c'est le composant le plus exposé.
 - **Journaliser et surveiller** les accès BMC → **SIEM (P7)** : tout login BMC, tout power action, tout montage d'ISO, tout flash firmware = événement de sécurité à haute valeur.
 
 ## 90.3 La segmentation réseau au service du tiering
@@ -647,24 +647,24 @@ Checklist de durcissement BMC :
 C'est ici que ton **modèle de tiering (P4/P5/P7)** devient **physique**. La segmentation réseau *matérialise* les frontières logiques :
 
 ```
-VLAN/VRF 10  — Production        (serveurs applicatifs)
-VLAN/VRF 20  — Cluster/Storage   (heartbeat, S2D — P3)
-VLAN/VRF 99  — OOB Management     (BMC, iDRAC — ISOLÉ, Tier 0)
-VLAN/VRF 50  — Tier 0 Admin       (DC, PKI, SIEM — P7-bis)
-VLAN/VRF 66  — DMZ
+VLAN/VRF 10  - Production        (serveurs applicatifs)
+VLAN/VRF 20  - Cluster/Storage   (heartbeat, S2D - P3)
+VLAN/VRF 99  - OOB Management     (BMC, iDRAC - ISOLÉ, Tier 0)
+VLAN/VRF 50  - Tier 0 Admin       (DC, PKI, SIEM - P7-bis)
+VLAN/VRF 66  - DMZ
 ```
 - **Micro-segmentation** : au-delà des VLAN, restreindre les flux *est-ouest* (est-ce qu'un poste utilisateur a une raison de parler au SIEM ? Non → bloqué). Coupe le **mouvement latéral** (P6 [M57](06-purple-team.md#module-57-mouvement-lateral)) au niveau réseau.
 - **VRF** : des tables de routage étanches → un compromis dans un VRF ne route pas vers un autre.
 - **Pare-feu inter-VLAN** : les flux entre tiers passent par un contrôle explicite (moindre privilège réseau).
 
-> **La boucle bouclée** : ton tiering identitaire (qui peut s'authentifier où, P4/P7-bis) **doit** s'appuyer sur une segmentation réseau (qui peut *joindre* qui). Sans elle, un Tier 0 logique reste joignable depuis un Tier 2 — la frontière est fictive. Sécurité identité + sécurité réseau = la même frontière, vue de deux côtés.
+> **La boucle bouclée** : ton tiering identitaire (qui peut s'authentifier où, P4/P7-bis) **doit** s'appuyer sur une segmentation réseau (qui peut *joindre* qui). Sans elle, un Tier 0 logique reste joignable depuis un Tier 2 - la frontière est fictive. Sécurité identité + sécurité réseau = la même frontière, vue de deux côtés.
 
 ## 90.4 Supply chain firmware & racine de confiance matérielle
 
 - **Firmware signé** + **Secure Boot** (UEFI) : n'exécuter que du code signé, du firmware à l'OS.
 - **TPM** + **attestation** : prouver cryptographiquement que le serveur a booté un firmware/OS de confiance (mesure d'intégrité). Base du **boot mesuré** et du zero-trust matériel.
 - **Root of Trust** silicium (ex. dispositifs de vérification firmware au démarrage) : détecter/refuser un firmware altéré.
-- Vérifier l'**intégrité de la chaîne d'approvisionnement** (matériel non altéré entre l'usine et le rack) — préoccupation réelle à grande échelle.
+- Vérifier l'**intégrité de la chaîne d'approvisionnement** (matériel non altéré entre l'usine et le rack) - préoccupation réelle à grande échelle.
 
 ## 90.5 Exercice n°77
 1. Décris le scénario d'attaque « BMC exposé + identifiants par défaut » et son impact (jusqu'où va l'attaquant ?).
@@ -674,11 +674,11 @@ VLAN/VRF 66  — DMZ
 
 ---
 
-# Module 91 — Cycle de vie du matériel
+# Module 91 - Cycle de vie du matériel
 
 ## 91.1 Gérer le fer du berceau à la tombe
 
-Un serveur a un cycle de vie que l'ingénieur pilote — pas juste « on l'installe et on oublie » :
+Un serveur a un cycle de vie que l'ingénieur pilote - pas juste « on l'installe et on oublie » :
 
 ```mermaid
 flowchart LR
@@ -690,7 +690,7 @@ flowchart LR
 
 ## 91.2 Planification de capacité
 
-- Suivre l'**utilisation** (CPU/RAM/stockage/thermique/puissance — via la télémétrie [M89](#module-89-telemetrie-materielle)) pour anticiper la saturation **avant** qu'elle ne bride (rappel 4 signaux d'or, P4).
+- Suivre l'**utilisation** (CPU/RAM/stockage/thermique/puissance - via la télémétrie [M89](#module-89-telemetrie-materielle)) pour anticiper la saturation **avant** qu'elle ne bride (rappel 4 signaux d'or, P4).
 - Modéliser la croissance, le **lead time** d'achat (des semaines/mois), l'espace rack, le budget électrique/thermique ([M81](#module-81-fondamentaux-du-data-center-facilities)).
 - Le **capacity planning** est une discipline SRE : on provisionne pour la demande future, pas pour hier.
 
@@ -728,18 +728,18 @@ manage-bde -off C:   # ou révoquer/détruire la clé de récupération côté A
 
 ---
 
-# Module 92 — Flotte & réseau as code + projet final
+# Module 92 - Flotte & réseau as code + projet final
 
 ## 92.1 L'aboutissement : le data center piloté par du code
 
-Tout ce qui précède — provisioning, firmware, config switch, inventaire — devient **déclaratif, versionné, testé**. C'est la **Trajectoire 3 appliquée au métal et au réseau**, et le sommet de cette partie. Principe : **NetBox ([M88](#module-88-inventaire-cmdb-dcim)) est la source de vérité ; les pipelines génèrent et appliquent la réalité ; toute dérive est détectée.**
+Tout ce qui précède - provisioning, firmware, config switch, inventaire - devient **déclaratif, versionné, testé**. C'est la **Trajectoire 3 appliquée au métal et au réseau**, et le sommet de cette partie. Principe : **NetBox ([M88](#module-88-inventaire-cmdb-dcim)) est la source de vérité ; les pipelines génèrent et appliquent la réalité ; toute dérive est détectée.**
 
 ## 92.2 Network as code : Ansible + NAPALM / Netmiko
 
 On ne configure plus un switch en CLI à la main (le « pet » du réseau). On **décrit l'intention** et on **génère/pousse** la config.
 
 - **Netmiko** : bibliothèque Python de connexion SSH multi-constructeur aux équipements réseau.
-- **NAPALM** : abstraction multi-vendor (Cisco, Arista, Juniper…) — mêmes fonctions (get_config, load_merge, diff, commit/rollback) quel que soit le constructeur.
+- **NAPALM** : abstraction multi-vendor (Cisco, Arista, Juniper…) - mêmes fonctions (get_config, load_merge, diff, commit/rollback) quel que soit le constructeur.
 - **Ansible** (collections `arista.eos`, `cisco.nxos`, `napalm`…) : l'orchestrateur déclaratif.
 
 ```yaml
@@ -780,7 +780,7 @@ dev.close()
 - name: Provisionner le métal
   hosts: localhost
   tasks:
-    - name: Forcer le boot PXE une fois (pour réinstaller — M86)
+    - name: Forcer le boot PXE une fois (pour réinstaller - M86)
       community.general.redfish_command:
         category: Systems
         command: SetOneTimeBoot
@@ -797,7 +797,7 @@ dev.close()
         password: "***"
 ```
 - **Terraform** : des providers bare-metal (Redfish, MAAS, etc.) permettent de déclarer l'état matériel désiré. Combiné à **Packer** pour construire des images durcies (rappel Trajectoire 3).
-- **Secrets** : les identifiants BMC dans **Vault** (jamais en clair dans le playbook — rappel Trajectoire 3), injectés au runtime.
+- **Secrets** : les identifiants BMC dans **Vault** (jamais en clair dans le playbook - rappel Trajectoire 3), injectés au runtime.
 
 ## 92.4 GitOps du data center & détection de dérive
 
@@ -811,7 +811,7 @@ flowchart LR
 ```
 - L'**intention** (VLAN, câblage, firmware cible, config port) vit dans Git + NetBox.
 - Le pipeline **applique** et surtout **vérifie** : `napalm compare_config`, inventaire firmware Redfish vs cible ([M87](#module-87-firmware-bios-as-code)), état NetBox vs réalité.
-- Toute **dérive** (un port modifié à la main, un firmware hors baseline) est **détectée** — et, en sécurité, une dérive non planifiée **est un signal** ([M90](#module-90-segmentation-securite-de-la-couche-management)).
+- Toute **dérive** (un port modifié à la main, un firmware hors baseline) est **détectée** - et, en sécurité, une dérive non planifiée **est un signal** ([M90](#module-90-segmentation-securite-de-la-couche-management)).
 
 ## 92.5 Projet fil rouge : « Data Center CORP as Code »
 
@@ -819,7 +819,7 @@ flowchart LR
 
 Checklist :
 
-- [ ] **NetBox** modélise racks, serveurs, switches, câblage, IPAM, VLAN — source de vérité.
+- [ ] **NetBox** modélise racks, serveurs, switches, câblage, IPAM, VLAN - source de vérité.
 - [ ] **Fabric** leaf-spine (même simulé) ; serveurs **dual-homés** ([M82](#module-82-connectivite-physique-comment-chaque-serveur-se-branche)) vers 2 ToR en MLAG.
 - [ ] **Alimentation** dual-feed A/B planifiée ([M81](#module-81-fondamentaux-du-data-center-facilities)) ; réseau **OOB isolé** pour les BMC ([M90](#module-90-segmentation-securite-de-la-couche-management)).
 - [ ] **Provisioning** bare-metal automatisé (PXE/iPXE + autounattend) → la machine atterrit dans la bonne OU et hérite de la gouvernance P7-bis.
@@ -843,17 +843,17 @@ Checklist :
 9. Comment la segmentation réseau matérialise-t-elle ton tiering identitaire (P4/P7) ?
 10. Effacement sécurisé : pourquoi le crypto-erase, et qu'oublie-t-on d'effacer en plus des disques ?
 
-## 92.7 Conclusion — la couche physique, maîtrisée et automatisée
+## 92.7 Conclusion - la couche physique, maîtrisée et automatisée
 
-Cette Partie 8 pose le sol qui manquait : le **fer, l'électron, le paquet**, sous tout ce que tu avais construit. Et fidèle à la casquette : tu ne l'as pas appris pour tirer du câble, mais pour **comprendre, sécuriser et automatiser** la flotte — pets vs cattle, provisioning déclaratif, firmware as code, segmentation au service du tiering, et data center as code.
+Cette Partie 8 pose le sol qui manquait : le **fer, l'électron, le paquet**, sous tout ce que tu avais construit. Et fidèle à la casquette : tu ne l'as pas appris pour tirer du câble, mais pour **comprendre, sécuriser et automatiser** la flotte - pets vs cattle, provisioning déclaratif, firmware as code, segmentation au service du tiering, et data center as code.
 
 Le fil qui traverse la partie : *le physique bien conçu sert le logique.* Le dual-feed sert ta HA (P3), le dual-homing sert ta résilience réseau, la segmentation matérialise ton tiering (P4/P7), le crypto-erase clôt le cycle de sécurité, et le tout **piloté par du code** rejoint ta Trajectoire 3. Le matériel n'est plus une boîte noire sous le plancher : c'est une flotte gouvernée comme le reste.
 
-**Et honnêtement, avec la casquette Google** : à l'hyperscale, cette couche est largement **abstraite** — des systèmes internes gèrent le provisioning, la réparation, le placement, et tu ne vois presque jamais un serveur physique. Ta compétence durable n'est donc pas iDRAC par cœur, c'est le **modèle cattle automatisé et le raisonnement design-for-failure** — exactement ce qui se transpose au **cloud**, où l'instance est le même bétail, en plus jetable. C'est le pont naturel vers la **Trajectoire 2 (cloud/hybride)**.
+**Et honnêtement, avec la casquette Google** : à l'hyperscale, cette couche est largement **abstraite** - des systèmes internes gèrent le provisioning, la réparation, le placement, et tu ne vois presque jamais un serveur physique. Ta compétence durable n'est donc pas iDRAC par cœur, c'est le **modèle cattle automatisé et le raisonnement design-for-failure** - exactement ce qui se transpose au **cloud**, où l'instance est le même bétail, en plus jetable. C'est le pont naturel vers la **Trajectoire 2 (cloud/hybride)**.
 
 ---
 
-## Annexe — Aide-mémoire Partie 8
+## Annexe - Aide-mémoire Partie 8
 
 ```
 # Facilities
@@ -888,4 +888,4 @@ nvme format /dev/nvmeXn1 --ses=2            crypto-erase (NIST 800-88 Purge)
 napalm compare_config ; commit/rollback    ; GitOps + drift depuis NetBox
 ```
 
-*Fin de la Partie 8. La ligne qui la résume : le matériel tombe — c'est un fait, pas un incident. On ne materne pas le serveur, on gouverne la flotte : conçue pour la panne, provisionnée par du code, segmentée pour la sécurité, surveillée pour être remplacée sans bruit. Le meilleur data center est celui qu'on n'a jamais besoin de visiter.*
+*Fin de la Partie 8. La ligne qui la résume : le matériel tombe - c'est un fait, pas un incident. On ne materne pas le serveur, on gouverne la flotte : conçue pour la panne, provisionnée par du code, segmentée pour la sécurité, surveillée pour être remplacée sans bruit. Le meilleur data center est celui qu'on n'a jamais besoin de visiter.*
