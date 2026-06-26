@@ -4,16 +4,16 @@
   var STORAGE_PREFIX = "ad-progress:";
 
   var MODULES = [
-    { slug: "01-fondations", title: "Partie 1 — Le cœur d'AD DS" },
-    { slug: "02-ecosysteme", title: "Partie 2 — L'écosystème de services" },
-    { slug: "03-resilience", title: "Partie 3 — La résilience" },
-    { slug: "04-exploitation-sre", title: "Partie 4 — L'exploitation SRE-grade" },
-    { slug: "05-theorie", title: "Partie 5 — Les fondements théoriques" },
-    { slug: "06-purple-team", title: "Partie 6 — Purple Team AD" },
-    { slug: "06-bis-red-team", title: "Partie 6-bis — Opérations Red Team" },
-    { slug: "07-bis-gouvernance", title: "Partie 7-bis — Gouvernance des outils de sécurité" },
-    { slug: "07-bis-annexes", title: "Partie 7-bis (annexe) — Commandes & configurations" },
-    { slug: "08-datacenter", title: "Partie 8 — Gestion de flotte & Data Center" }
+    { slug: "01-fondations", title: "Partie 1 - Le cœur d'AD DS" },
+    { slug: "02-ecosysteme", title: "Partie 2 - L'écosystème de services" },
+    { slug: "03-resilience", title: "Partie 3 - La résilience" },
+    { slug: "04-exploitation-sre", title: "Partie 4 - L'exploitation SRE-grade" },
+    { slug: "05-theorie", title: "Partie 5 - Les fondements théoriques" },
+    { slug: "06-purple-team", title: "Partie 6 - Purple Team AD" },
+    { slug: "06-bis-red-team", title: "Partie 6-bis - Opérations Red Team" },
+    { slug: "07-bis-gouvernance", title: "Partie 7-bis - Gouvernance des outils de sécurité" },
+    { slug: "07-bis-annexes", title: "Partie 7-bis (annexe) - Commandes & configurations" },
+    { slug: "08-datacenter", title: "Partie 8 - Gestion de flotte & Data Center" }
   ];
 
   function pageKey(slug) {
