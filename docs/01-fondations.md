@@ -159,13 +159,13 @@ Rename-Computer -NewName "DC01" -Restart
 Get-NetAdapter
 
 # 3. Configurer une IP statique (OBLIGATOIRE pour un DC)
-New-NetIPAddress -InterfaceAlias "Ethernet" `
+New-NetIPAddress -InterfaceAlias "Ethernet0" `
     -IPAddress 192.168.10.10 `
     -PrefixLength 24 `
     -DefaultGateway 192.168.10.1
 
 # 4. DNS : pointer vers soi-même (loopback en secondaire après promotion)
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 192.168.10.10
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.10.10
 
 # 5. Fuseau horaire
 Set-TimeZone -Id "Romance Standard Time"   # adaptez à votre région
@@ -460,7 +460,7 @@ Sur SRV01 (PowerShell admin) :
 
 ```powershell
 # Prérequis : DNS du client = 192.168.10.10
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 192.168.10.10
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.10.10
 Rename-Computer -NewName "SRV01" -Restart
 
 # Après redémarrage : jonction directement dans la bonne OU
@@ -676,9 +676,9 @@ Install-ADDSDomainController `
 Après redémarrage, ajustez le DNS des deux DC (croisé + loopback) :
 ```powershell
 # Sur DC01 :
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 192.168.10.11, 127.0.0.1
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.10.11, 127.0.0.1
 # Sur DC02 :
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 192.168.10.10, 127.0.0.1
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.10.10, 127.0.0.1
 ```
 
 ## 9.2 Fonctionnement de la réplication
