@@ -380,6 +380,16 @@ New-ADUser -Name "Jean Dupont" `
     -ChangePasswordAtLogon $true `
     -Enabled $true
 
+# Variante : mot de passe directement dans la commande (pratique en lab, à éviter en prod car en clair dans l'historique)
+New-ADUser -Name "Alice Martin" `
+    -GivenName "Alice" -Surname "Martin" `
+    -SamAccountName "amartin" `
+    -UserPrincipalName "amartin@corp.lab.local" `
+    -Path "OU=IT,OU=Utilisateurs,OU=CORP,DC=corp,DC=lab,DC=local" `
+    -AccountPassword (ConvertTo-SecureString "Bienvenue2026!" -AsPlainText -Force) `
+    -ChangePasswordAtLogon $true `
+    -Enabled $true
+
 # Recherches courantes
 Get-ADUser -Filter {Enabled -eq $false}                          # comptes désactivés
 Get-ADUser -Filter * -SearchBase "OU=IT,OU=Utilisateurs,OU=CORP,DC=corp,DC=lab,DC=local"
