@@ -404,6 +404,38 @@ Disable-ADAccount jdupont
 Move-ADObject -Identity (Get-ADUser jdupont).DistinguishedName -TargetPath "OU=RH,OU=Utilisateurs,OU=CORP,DC=corp,DC=lab,DC=local"
 ```
 
+### Modification d'un utilisateur
+
+```powershell
+# Modifier des attributs (titre, service, téléphone, description...)
+Set-ADUser jdupont -Title "Administrateur Système" -Department "IT" `
+    -OfficePhone "0123456789" -Description "Modifié le $(Get-Date -Format 'yyyy-MM-dd')"
+
+# Renommer (nom d'affichage) et déplacer vers une autre OU
+Rename-ADObject -Identity (Get-ADUser jdupont).DistinguishedName -NewName "Jean Dupont-Martin"
+Move-ADObject -Identity (Get-ADUser jdupont).DistinguishedName -TargetPath "OU=RH,OU=Utilisateurs,OU=CORP,DC=corp,DC=lab,DC=local"
+
+# Ajouter / retirer des groupes
+Add-ADPrincipalGroupMembership jdupont -MemberOf "Support-N1"
+Remove-ADPrincipalGroupMembership jdupont -MemberOf "Support-N1" -Confirm:$false
+Get-ADPrincipalGroupMembership jdupont | Select Name   # vérifier les appartenances actuelles
+```
+
+#### Modification en masse via CSV
+
+`modifications.csv` :
+```csv
+Login,Service,Titre
+amartin,Comptabilite,Comptable Senior
+bdurand,IT,Technicien Support
+```
+
+```powershell
+Import-Csv .\modifications.csv | ForEach-Object {
+    Set-ADUser -Identity $_.Login -Department $_.Service -Title $_.Titre
+}
+```
+
 ### Suppression d'un utilisateur
 
 Étapes recommandées (l'ordre compte : on désactive avant de supprimer, pour ne pas perdre l'accès en cas d'erreur) :
