@@ -404,6 +404,20 @@ Disable-ADAccount jdupont
 Move-ADObject -Identity (Get-ADUser jdupont).DistinguishedName -TargetPath "OU=RH,OU=Utilisateurs,OU=CORP,DC=corp,DC=lab,DC=local"
 ```
 
+### Suppression d'un utilisateur
+
+Étapes recommandées (l'ordre compte : on désactive avant de supprimer, pour ne pas perdre l'accès en cas d'erreur) :
+
+1. **Désactiver le compte** (et vérifier qu'il n'y a pas d'impact immédiat) : `Disable-ADAccount jdupont`
+2. **Vérifier ses appartenances aux groupes** avant suppression (utile si un accès doit être transféré) : `Get-ADPrincipalGroupMembership jdupont | Select Name`
+3. **Supprimer l'utilisateur** :
+```powershell
+Remove-ADUser -Identity jdupont -Confirm:$false
+```
+> Sans `-Confirm:$false`, PowerShell demande une confirmation avant suppression.
+
+- Si l'**Active Directory Recycle Bin** est activé (`Enable-ADOptionalFeature -Identity "Recycle Bin Feature" ...`), un objet supprimé reste récupérable pendant la durée de rétention (`Get-ADObject -IncludeDeletedObjects -Filter {DisplayName -eq "Jean Dupont"} | Restore-ADObject`).
+
 ### Création en masse depuis un CSV
 
 `utilisateurs.csv` :
